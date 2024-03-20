@@ -23,9 +23,9 @@ void AChunk::BeginPlay()
 
 void AChunk::Generate()
 {
-	for (int32 X = 0; X < SIZE; ++X)
+	for (int32 X = 0; X < SIZE; X++)
 	{
-		for (int32 Y = 0; Y < SIZE; ++Y)
+		for (int32 Y = 0; Y < SIZE; Y++)
 		{
 			int32 Height = HEIGHT / 2;
 
@@ -33,7 +33,7 @@ void AChunk::Generate()
 			{
 				SetBlock(FIntVector{ X, Y, Z }, FBlockType::Stone.ID);
 			}
-			for (int32 Z = Height - DIRT_LAYER_HEIGHT; Z < Height; Z++)
+			for (int32 Z = Height - DIRT_LAYER_HEIGHT; Z < HEIGHT; Z++)
 			{
 				SetBlock(FIntVector{ X, Y, Z }, FBlockType::Dirt.ID);
 			}
@@ -43,11 +43,11 @@ void AChunk::Generate()
 
 void AChunk::CreateMesh()
 {
-	for (int32 X = 0; X < SIZE; ++X)
+	for (int32 X = 0; X < SIZE; X++)
 	{
-		for (int32 Y = 0; Y < SIZE; ++Y)
+		for (int32 Y = 0; Y < SIZE; Y++)
 		{
-			for (int32 Z = 0; Z < HEIGHT; ++Z)
+			for (int32 Z = 0; Z < SIZE; Z++)
 			{
 				TryCreateBlock(FIntVector{ X, Y, Z });
 			}
@@ -85,7 +85,7 @@ void AChunk::TryCreateBlock(FIntVector Position)
 
 		if (IsAir(NeighborPosition))
 		{
-			CreateFace(static_cast<FVector>(Position) * BLOCK_SIZE, Direction, BlockType);
+			CreateFace(static_cast<FVector>(Position), Direction, BlockType);
 		}
 	}
 }
@@ -109,7 +109,7 @@ void AChunk::CreateFace(FVector Position, EDirection Direction, const FBlockType
 	}
 }
 
-FVector AChunk::GetFaceNormal(EDirection Face) const
+FVector AChunk::GetFaceNormal(EDirection Face)
 {
 	switch (Face)
 	{

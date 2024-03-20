@@ -9,3 +9,5 @@ enum class EDirection
 	Back,
 	Top,
 };
+
+inline constexpr int32 DIRECTION_COUNT{ 6 };

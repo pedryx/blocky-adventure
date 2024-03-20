@@ -27,7 +27,7 @@ public:
 	TObjectPtr<UMaterialInterface> Material;
 
 	inline static constexpr int32 SIZE{ 16 };
-	inline static constexpr int32 HEIGHT{ 64 };
+	inline static constexpr int32 HEIGHT{ 256 };
 	inline static constexpr int32 TOTAL_SIZE{ SIZE * SIZE * HEIGHT };
 	inline static constexpr int32 DIRT_LAYER_HEIGHT{ 3 };
 	inline static constexpr int32 BLOCK_SIZE{ 100 };
@@ -101,12 +101,12 @@ private:
 	 * \param Face Direction which represent the face of the block.
 	 * \return Normal vector of the face of the block.
 	 */
-	FVector GetFaceNormal(EDirection Face) const;
+	FVector GetFaceNormal(EDirection Face);
 
 	/**
 	 * Convert block position, local to chunk, to index which can be used to index chunk's blocks.
 	 */
-	int32 GetBlockIndex(FIntVector BlockPosition) const
+	int32 GetBlockIndex(FIntVector BlockPosition)
 	{
 		return BlockPosition.Z* SIZE* SIZE + BlockPosition.Y * SIZE + BlockPosition.X;
 	}
@@ -114,7 +114,7 @@ private:
 	/**
 	 * Determine if block position, local to chunk, is within chunk bounds.
 	 */
-	bool IsInBounds(FIntVector BlockPosition) const
+	bool IsInBounds(FIntVector BlockPosition)
 	{
 		return BlockPosition.X >= 0 && BlockPosition.Y >= 0 && BlockPosition.Z >= 0
 			&& BlockPosition.X < SIZE && BlockPosition.Y < SIZE && BlockPosition.Z < HEIGHT;
@@ -133,7 +133,7 @@ private:
 	/**
 	 * Get block type ID of block at specified position, local to chunk.
 	 */
-	BlockTypeID GetBlock(FIntVector BlockPosition) const
+	BlockTypeID GetBlock(FIntVector BlockPosition)
 	{
 		checkf(IsInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
 
@@ -144,7 +144,7 @@ private:
 	 * Determine if block at specified position, local to chunk, is air. Blocks outside of this chunk are also
 	 * considered as air.
 	 */
-	bool IsAir(FIntVector BlockPosition) const
+	bool IsAir(FIntVector BlockPosition)
 	{
 		if (!IsInBounds(BlockPosition)) {
 			return true;
@@ -152,4 +152,6 @@ private:
 
 		return GetBlock(BlockPosition) == FBlockType::AIR_ID;
 	}
+
+	
 };
