@@ -32,7 +32,7 @@ struct BLOCKYADVENTURE_API FBlockType
 	/**
 	 * Get block type with specified ID.
 	 */
-	static const FBlockType& FromID(BlockTypeID ID)
+	static const FBlockType& FromID(const BlockTypeID ID)
 	{
 		checkf(ID <= BlockTypes.Num(), TEXT("Invalid block type ID"));
 		checkf(ID != AIR_ID, TEXT("Cannot get block type of empty (air) block"));
@@ -42,7 +42,7 @@ struct BLOCKYADVENTURE_API FBlockType
 	}
 
 private:
-	FBlockType(FColor Color)
+	FBlockType(const FColor& Color)
 		// ID 0 is reserved for the air.
 		: Color{ Color }, ID{ static_cast<BlockTypeID>(BlockTypes.Num() + 1) }
 	{

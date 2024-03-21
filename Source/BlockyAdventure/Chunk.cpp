@@ -1,5 +1,6 @@
 
 #include "Chunk.h"
+#include "Sector.h"
 
 #include "ProceduralMeshComponent.h"
 
@@ -10,25 +11,27 @@ AChunk::AChunk()
 	MeshComponent = CreateDefaultSubobject<UProceduralMeshComponent>("Mesh");
 	SetRootComponent(MeshComponent);
 
-	Blocks.Init(FBlockType::AIR_ID, TOTAL_SIZE);
+	Blocks.Init(FBlockType::AIR_ID, SIZE * SIZE * HEIGHT);
 }
 
 void AChunk::BeginPlay()
 {
 	Super::BeginPlay();
-
-	Generate();
-	CreateMesh();
 }
 
 void AChunk::Generate()
 {
+	MeshVertices.Empty();
+	MeshIndices.Empty();
+	MeshNormals.Empty();
+	MeshColors.Empty();
+
+	const int32 Height = HEIGHT / 2;
+
 	for (int32 X = 0; X < SIZE; ++X)
 	{
 		for (int32 Y = 0; Y < SIZE; ++Y)
 		{
-			int32 Height = HEIGHT / 2;
-
 			for (int32 Z = 0; Z < Height - DIRT_LAYER_HEIGHT; Z++)
 			{
 				SetBlock(FIntVector{ X, Y, Z }, FBlockType::Stone.ID);
@@ -67,9 +70,18 @@ void AChunk::CreateMesh()
 	);
 }
 
-void AChunk::TryCreateBlock(FIntVector Position)
+bool AChunk::IsAir(const FIntVector& BlockPosition) const
 {
-	BlockTypeID ID = GetBlock(Position);
+	if (!IsInBounds(BlockPosition)) {
+		return Sector->IsBlockAir(GetInSectorPosition(BlockPosition));
+	}
+
+	return GetBlock(BlockPosition) == FBlockType::AIR_ID;
+}
+
+void AChunk::TryCreateBlock(const FIntVector& Position)
+{
+	const BlockTypeID ID = GetBlock(Position);
 
 	if (ID == FBlockType::AIR_ID)
 	{
@@ -80,8 +92,8 @@ void AChunk::TryCreateBlock(FIntVector Position)
 
 	for (int32 i = 0; i < DIRECTION_COUNT; ++i)
 	{
-		EDirection Direction{ static_cast<EDirection>(i) };
-		FIntVector NeighborPosition{ Position + static_cast<FIntVector>(GetFaceNormal(Direction)) };
+		const EDirection Direction{ static_cast<EDirection>(i) };
+		const FIntVector NeighborPosition{ Position + static_cast<FIntVector>(GetFaceNormal(Direction)) };
 
 		if (IsAir(NeighborPosition))
 		{
@@ -90,13 +102,13 @@ void AChunk::TryCreateBlock(FIntVector Position)
 	}
 }
 
-void AChunk::CreateFace(FVector Position, EDirection Direction, const FBlockType& BlockType)
+void AChunk::CreateFace(const FVector& Position, const EDirection Direction, const FBlockType& BlockType)
 {
-	FVector Normal = GetFaceNormal(Direction);
+	const FVector Normal = GetFaceNormal(Direction);
 
 	for (int32 i = 0; i < FACE_VERTICES_COUNT; ++i)
 	{
-		int32 VertexIndex{ BlockIndices[4 * static_cast<int32>(Direction) + i] };
+		const int32 VertexIndex{ BlockIndices[4 * static_cast<int32>(Direction) + i] };
 		MeshVertices.Add(BlockVertices[VertexIndex] + Position);
 
 		MeshNormals.Add(Normal);
@@ -109,7 +121,7 @@ void AChunk::CreateFace(FVector Position, EDirection Direction, const FBlockType
 	}
 }
 
-FVector AChunk::GetFaceNormal(EDirection Face) const
+FVector AChunk::GetFaceNormal(const EDirection Face) const
 {
 	switch (Face)
 	{
