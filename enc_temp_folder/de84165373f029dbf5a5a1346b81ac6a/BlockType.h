@@ -23,8 +23,6 @@ struct BLOCKYADVENTURE_API FBlockType
 
 	static const FBlockType Stone;
 	static const FBlockType Dirt;
-	static const FBlockType Grass;
-	static const FBlockType Snow;
 
 	/**
 	 * ID of empty block (the air block).

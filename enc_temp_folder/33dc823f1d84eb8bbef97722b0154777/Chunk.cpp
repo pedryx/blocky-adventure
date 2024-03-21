@@ -26,33 +26,19 @@ void AChunk::Generate()
 	MeshNormals.Empty();
 	MeshColors.Empty();
 
+	const int32 Height = HEIGHT / 2;
 
 	for (int32 X = 0; X < SIZE; ++X)
 	{
 		for (int32 Y = 0; Y < SIZE; ++Y)
 		{
-			const FIntVector InSectorPosition = GetInSectorPosition(FIntVector{ X, Y, 0 });
-			const int32 Height = Sector->ComputeHeight(FIntVector2{ InSectorPosition.X, InSectorPosition.Y });
-
-			for (int32 Z = 0; Z <= Height; ++Z)
+			for (int32 Z = 0; Z < Height - DIRT_LAYER_HEIGHT; Z++)
 			{
 				SetBlock(FIntVector{ X, Y, Z }, FBlockType::Stone.ID);
 			}
-
-			if (Height >= SNOW_HEIGHT)
+			for (int32 Z = Height - DIRT_LAYER_HEIGHT; Z < Height; Z++)
 			{
-				for (int32 Z = SNOW_HEIGHT; Z <= Height; ++Z)
-				{
-					SetBlock(FIntVector{ X, Y, Z }, FBlockType::Snow.ID);
-				}
-			}
-			else if (Height < ROCK_HEIGHT)
-			{
-				for (int32 Z = Height - DIRT_LAYER_HEIGHT + 1; Z <= Height - 1; ++Z)
-				{
-					SetBlock(FIntVector{ X, Y, Z }, FBlockType::Dirt.ID);
-				}
-				SetBlock(FIntVector{ X, Y, Height }, FBlockType::Grass.ID);
+				SetBlock(FIntVector{ X, Y, Z }, FBlockType::Dirt.ID);
 			}
 		}
 	}
