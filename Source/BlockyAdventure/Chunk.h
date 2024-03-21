@@ -154,7 +154,7 @@ private:
 	 */
 	int32 GetBlockIndex(const FIntVector& BlockPosition) const
 	{
-		return BlockPosition.Z* SIZE* SIZE + BlockPosition.Y * SIZE + BlockPosition.X;
+		return BlockPosition.Z * SIZE * SIZE + BlockPosition.Y * SIZE + BlockPosition.X;
 	}
 
 	/**

@@ -56,6 +56,7 @@ void AChunk::Generate()
 			}
 		}
 	}
+
 }
 
 void AChunk::CreateMesh()

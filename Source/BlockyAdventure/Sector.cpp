@@ -47,7 +47,7 @@ bool ASector::IsBlockAir(const FIntVector& BlockPosition) const
 
 	const int32 ChunkX = BlockPosition.X / AChunk::SIZE;
 	const int32 ChunkY = BlockPosition.Y / AChunk::SIZE;
-	const int32 ChunkIndex = ChunkY * SIZE + ChunkX;
+	const int32 ChunkIndex = ChunkX * SIZE + ChunkY;
 	const FIntVector InChunkPosition{ BlockPosition - FIntVector{ ChunkX * AChunk::SIZE, ChunkY * AChunk::SIZE, 0 } };
 
 	return Chunks[ChunkIndex]->IsAir(InChunkPosition);
