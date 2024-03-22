@@ -14,8 +14,9 @@ public class BlockyAdventure : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"InputCore",
-			"ProceduralMeshComponent"
-		});
+			"ProceduralMeshComponent",
+            "EnhancedInput"
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {});
 

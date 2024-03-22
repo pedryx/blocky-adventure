@@ -81,7 +81,7 @@ void AChunk::CreateMesh()
 		TArray<FVector2D>{},
 		MeshColors,
 		TArray<FProcMeshTangent>{},
-		false
+		true
 	);
 }
 
