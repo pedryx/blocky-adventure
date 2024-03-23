@@ -13,13 +13,27 @@ void ASector::BeginPlay()
 
 	Chunks.Reserve(SIZE * SIZE);
 
+	Create();
+}
+
+void ASector::Create()
+{
 	Generate();
 	CreateMesh();
 }
 
+void ASector::Clear()
+{
+	for (AChunk* Chunk : Chunks)
+	{
+		Chunk->Destroy();
+	}
+	Chunks.Empty(SIZE * SIZE);
+}
+
 void ASector::Generate()
 {
-	Chunks.Empty(SIZE * SIZE);
+	Clear();
 
 	for (int32 X = 0; X < SIZE; ++X)
 	{

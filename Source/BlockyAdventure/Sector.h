@@ -33,6 +33,18 @@ public:
 	inline static constexpr int32 SIZE{ 8 };
 
 	/**
+	 * Generate terrain and create mesh for the sector.
+	 */
+	UFUNCTION(CallInEditor, Category = "Sector")
+	void Create();
+
+	/**
+	 * Destroy all the chunks.
+	 */
+	UFUNCTION(CallInEditor, Category = "Sector")
+	void Clear();
+
+	/**
 	 * Generate terrain for each chunk within this sector.
 	 */
 	void Generate();
