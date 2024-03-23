@@ -56,6 +56,14 @@ void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 		this,
 		&APlayerCharacterControllerBase::HandleDestroyBlock
 	);
+
+	checkf(IsValid(ActionPlaceBlock), TEXT("ActionPlaceBlock was not specified."));
+	EnhancedInputComponent->BindAction(
+		ActionPlaceBlock,
+		ETriggerEvent::Triggered,
+		this,
+		&APlayerCharacterControllerBase::HandlePlaceBlock
+	);
 }
 
 void APlayerCharacterControllerBase::OnUnPossess()
@@ -117,6 +125,21 @@ void APlayerCharacterControllerBase::HandleDestroyBlock(const FInputActionValue&
 		return;
 	}
 
+	TrySetLineTracedBlock(FBlockType::AIR_ID, 1.0f);
+}
+
+void APlayerCharacterControllerBase::HandlePlaceBlock(const FInputActionValue& InputActionValue)
+{
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	TrySetLineTracedBlock(FBlockType::Stone.ID, -1.0f);
+}
+
+void APlayerCharacterControllerBase::TrySetLineTracedBlock(BlockTypeID ID, float offset)
+{
 	FVector CameraLocation;
 	FRotator CameraRotator;
 	GetActorEyesViewPoint(CameraLocation, CameraRotator);
@@ -126,7 +149,7 @@ void APlayerCharacterControllerBase::HandleDestroyBlock(const FInputActionValue&
 
 	const FVector EndPoint{ CameraLocation + CameraRotator.Vector() * PlayerReach * AChunk::BLOCK_SIZE };
 	FHitResult HitResult;
-	
+
 	const bool bIsHit = GetWorld()->LineTraceSingleByChannel(
 		HitResult,
 		CameraLocation,
@@ -142,11 +165,11 @@ void APlayerCharacterControllerBase::HandleDestroyBlock(const FInputActionValue&
 
 		const FVector LineTraceDirection{ (EndPoint - CameraLocation).GetUnsafeNormal() };
 		// We need to offset impact point by some threshold, because wi need to get a position within a block.
-		const FVector WorldPosition{ HitResult.ImpactPoint + LineTraceDirection};
+		const FVector WorldPosition{ HitResult.ImpactPoint + LineTraceDirection * offset };
 
 		ASector* Sector{ Chunk->GetSector() };
 		const FIntVector BlockPosition = Sector->GetBlockPosition(WorldPosition);
-		Sector->SetBlock(BlockPosition, FBlockType::AIR_ID);
+		Sector->SetBlock(BlockPosition, ID);
 		Sector->GetChunk(BlockPosition)->CreateMesh();
 
 		// We need to regenerate also chunk of block behind, because that block can have missing face,

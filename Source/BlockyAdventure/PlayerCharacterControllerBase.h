@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "BlockType.h"
 #include "PlayerCharacterControllerBase.generated.h"
 
 class UInputAction;
@@ -27,6 +28,9 @@ public:
 	UInputAction* ActionDestroyBlock{};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
+	UInputAction* ActionPlaceBlock{};
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
 	TObjectPtr<UInputMappingContext> InputMappingContext{};
 
 	UPROPERTY(EditAnywhere, Category = "Player Input")
@@ -47,4 +51,13 @@ private:
 	void HandleLook(const FInputActionValue& InputActionValue);
 	void HandleJump(const FInputActionValue& InputActionValue);
 	void HandleDestroyBlock(const FInputActionValue& InputActionValue);
+	void HandlePlaceBlock(const FInputActionValue& InputActionValue);
+
+	/**
+	 * Line cast from player into the world. When line cast succed get a block at result position and set it to a
+	 * block of a type of a specified ID.
+	 * 
+	 * @param offset Block will be picked by hit position which can be offseted by this parameter.
+	 */
+	void TrySetLineTracedBlock(BlockTypeID ID, float offset);
 };
