@@ -11,6 +11,16 @@ void ASector::BeginPlay()
 {
 	Super::BeginPlay();
 
+	Chunks.Reserve(SIZE * SIZE);
+
+	Generate();
+	CreateMesh();
+}
+
+void ASector::Generate()
+{
+	Chunks.Empty(SIZE * SIZE);
+
 	for (int32 X = 0; X < SIZE; ++X)
 	{
 		for (int32 Y = 0; Y < SIZE; ++Y)
@@ -22,16 +32,19 @@ void ASector::BeginPlay()
 			};
 
 			AChunk* Chunk{ GetWorld()->SpawnActor<AChunk>(SpawnPosition, FRotator::ZeroRotator) };
-			checkf(IsValid(Chunk), TEXT("Chunk cannot be spawned"));
+			checkf(IsValid(Chunk), TEXT("Unable to spawn chunk."));
 
-			checkf(IsValid(Material), TEXT("Invalid material"));
+			checkf(IsValid(Material), TEXT("Material was not specified."));
 			Chunk->Initialize(FIntVector2{ X, Y }, Material, this);
 			Chunk->Generate();
 
 			Chunks.Add(Chunk);
 		}
 	}
+}
 
+void ASector::CreateMesh()
+{
 	for (AChunk* Chunk : Chunks)
 	{
 		Chunk->CreateMesh();
@@ -62,7 +75,7 @@ bool ASector::IsInBounds(const FIntVector& BlockPosition) const
 
 int32 ASector::ComputeHeight(const FIntVector2& BlockPosition) const
 {
-	checkf(Octaves.Num() > 0, TEXT("Cannot generate noise from zero octaves"));
+	checkf(Octaves.Num() > 0, TEXT("Cannot generate noise from zero octaves."));
 
 	FVector2D NoisePosition{ static_cast<double>(BlockPosition.X), static_cast<double>(BlockPosition.Y) };
 	NoisePosition /= AChunk::SIZE;

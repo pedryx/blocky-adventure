@@ -33,6 +33,17 @@ public:
 	inline static constexpr int32 SIZE{ 8 };
 
 	/**
+	 * Generate terrain for each chunk within this sector.
+	 */
+	void Generate();
+
+	/**
+	 * Create mesh for each chunk within this sector.
+	 * 
+	 */
+	void CreateMesh();
+
+	/**
 	 * Determine if a block at specified position, local to this sector, is an air (empty) block.  Blocks outside of
 	 * this sector are also considered as air.
 	 */
@@ -46,6 +57,9 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+	/**
+	 * Contains all chunks, which belong to this sector.
+	 */
 	TArray<AChunk*> Chunks;
 
 	/**

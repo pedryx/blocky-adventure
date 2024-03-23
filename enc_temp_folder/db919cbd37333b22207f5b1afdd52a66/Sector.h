@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Octave.h"
 #include "Sector.generated.h"
 
 class AChunk;
@@ -21,14 +22,26 @@ public:
 	TObjectPtr<UMaterialInterface> Material;
 
 	/**
-	 * Number of chunks in X and Y dimensions.
+	 * Octaves used for generating height map.
 	 */
-	inline static constexpr int32 SIZE{ 2 };
+	UPROPERTY(EditInstanceOnly, Category = "Sector")
+	TArray<FOctave> Octaves;
 
 	/**
-	 * Determine if a block at specified position, local to this sector, is an air (empty) block.
+	 * Number of chunks in X and Y dimensions.
+	 */
+	inline static constexpr int32 SIZE{ 8 };
+
+	/**
+	 * Determine if a block at specified position, local to this sector, is an air (empty) block.  Blocks outside of
+	 * this sector are also considered as air.
 	 */
 	bool IsBlockAir(const FIntVector& BlockPosition) const;
+
+	/**
+	 * Compute height for block at a specified XY position, local to this sector.
+	 */
+	int32 ComputeHeight(const FIntVector2& BlockPosition) const;
 protected:
 	virtual void BeginPlay() override;
 

@@ -76,13 +76,23 @@ public:
 	bool IsAir(const FIntVector& BlockPosition) const;
 
 	/**
-	* Set block at specified position to a block type with specified ID.
+	* Set block at specified position, local to this chunk, to a block type with specified ID.
 	*/
 	void SetBlock(const FIntVector& BlockPosition, const BlockTypeID ID)
 	{
 		checkf(IsInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
 
 		Blocks[GetBlockIndex(BlockPosition)] = ID;
+	}
+
+	/**
+	 * Get block type ID of block at specified position, local to this chunk.
+	 */
+	BlockTypeID GetBlock(const FIntVector& BlockPosition) const
+	{
+		checkf(IsInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
+
+		return Blocks[GetBlockIndex(BlockPosition)];
 	}
 protected:
 	virtual void BeginPlay() override;
@@ -127,15 +137,15 @@ private:
 	inline static constexpr int32 FACE_VERTICES_COUNT{ 4 };
 
 	/**
-	 * Try to create mesh for all visible faces of the block at specified position, local to chunk. Will create no mesh
-	 * when no face of the block is visible. Create mesh data will be appended to the chunk mesh data.
+	 * Try to create mesh for all visible faces of the block at specified position, local to this chunk. Will create no
+	 * mesh when no face of the block is visible. Create mesh data will be appended to the chunk mesh data.
 	 */
 	void TryCreateBlock(const FIntVector& Position);
 
 	/**
 	 * Append mesh data for one face of the block.
 	 * 
-	 * \param Position Position of the block.
+	 * \param Position Position of the block, local to this chunk.
 	 * \param Direction Direction of the face of the block.
 	 * \param BlockType Type of block.
 	 */
@@ -150,7 +160,7 @@ private:
 	FVector GetFaceNormal(const EDirection Face) const;
 
 	/**
-	 * Convert block position, local to chunk, to index which can be used to index chunk's blocks.
+	 * Convert block position, local to this chunk, into an index which can be used to index chunk's blocks.
 	 */
 	int32 GetBlockIndex(const FIntVector& BlockPosition) const
 	{
@@ -158,22 +168,12 @@ private:
 	}
 
 	/**
-	 * Determine if block position, local to chunk, is within chunk bounds.
+	 * Determine if block position, local to this chunk, is within chunk bounds.
 	 */
 	bool IsInBounds(const FIntVector& BlockPosition) const
 	{
 		return BlockPosition.X >= 0 && BlockPosition.Y >= 0 && BlockPosition.Z >= 0
 			&& BlockPosition.X < SIZE && BlockPosition.Y < SIZE && BlockPosition.Z < HEIGHT;
-	}
-
-	/**
-	 * Get block type ID of block at specified position, local to chunk.
-	 */
-	BlockTypeID GetBlock(const FIntVector& BlockPosition) const
-	{
-		checkf(IsInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
-
-		return Blocks[GetBlockIndex(BlockPosition)];
 	}
 
 	/**

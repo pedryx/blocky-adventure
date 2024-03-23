@@ -13,9 +13,9 @@ struct BLOCKYADVENTURE_API FOctave
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "Noise settings")
+	UPROPERTY(EditAnywhere)
 	double Weight{ 1.0 };
 
-	UPROPERTY(EditAnywhere, Category = "Noise settings")
+	UPROPERTY(EditAnywhere)
 	double Frequency{ 1.0 };
 };

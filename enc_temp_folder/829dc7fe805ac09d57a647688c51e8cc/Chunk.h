@@ -28,11 +28,19 @@ public:
 	/**
 	 * Number of blocks in chunk in Z dimension.
 	 */
-	inline static constexpr int32 HEIGHT{ 64 };
+	inline static constexpr int32 HEIGHT{ 128 };
+	/**
+	 * Height from which all blocks are snow.
+	 */
+	inline static constexpr int32 SNOW_HEIGHT{ 75 };
+	/**
+	 * Height from which all blocks are stone.
+	 */
+	inline static constexpr int32 ROCK_HEIGHT{ 60 };
 	/**
 	 * Height of dirt blocks layer.
 	 */
-	inline static constexpr int32 DIRT_LAYER_HEIGHT{ 3 };
+	inline static constexpr int32 DIRT_LAYER_HEIGHT{ 5 };
 	/**
 	 * Size of one block.
 	 */
@@ -63,8 +71,7 @@ public:
 	void CreateMesh();
 
 	/**
-	 * Determine if block at specified position, local to chunk, is air. Blocks outside of this chunk are also
-	 * considered as air.
+	 * Determine if block at specified position, local to chunk, is air.
 	 */
 	bool IsAir(const FIntVector& BlockPosition) const;
 
@@ -147,7 +154,7 @@ private:
 	 */
 	int32 GetBlockIndex(const FIntVector& BlockPosition) const
 	{
-		return BlockPosition.Z* SIZE* SIZE + BlockPosition.Y * SIZE + BlockPosition.X;
+		return BlockPosition.Z * SIZE * SIZE + BlockPosition.Y * SIZE + BlockPosition.X;
 	}
 
 	/**

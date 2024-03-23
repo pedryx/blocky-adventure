@@ -22,29 +22,35 @@ void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 	InputSubsystem->ClearAllMappings();
 	InputSubsystem->AddMappingContext(InputMappingContext, 0);
 
-	checkf(IsValid(ActionMove), TEXT("ActionMove was not specified."));
-	EnhancedInputComponent->BindAction(
-		ActionMove,
-		ETriggerEvent::Triggered,
-		this,
-		&APlayerCharacterControllerBase::HandleMove
-	);
+	if (IsValid(ActionMove))
+	{
+		EnhancedInputComponent->BindAction(
+			ActionMove, 
+			ETriggerEvent::Triggered,
+			this, 
+			&APlayerCharacterControllerBase::HandleMove
+		);
+	}
 
-	checkf(IsValid(ActionLook), TEXT("ActionLook was not specified."));
-	EnhancedInputComponent->BindAction(
-		ActionLook,
-		ETriggerEvent::Triggered,
-		this,
-		&APlayerCharacterControllerBase::HandleLook
-	);
+	if (IsValid(ActionLook))
+	{
+		EnhancedInputComponent->BindAction(
+			ActionLook,
+			ETriggerEvent::Triggered,
+			this,
+			&APlayerCharacterControllerBase::HandleLook
+		);
+	}
 
-	checkf(IsValid(ActionJump), TEXT("ActionJump was not specified."));
-	EnhancedInputComponent->BindAction(
-		ActionJump,
-		ETriggerEvent::Triggered,
-		this,
-		&APlayerCharacterControllerBase::HandleJump
-	);
+	if (IsValid(ActionJump))
+	{
+		EnhancedInputComponent->BindAction(
+			ActionJump,
+			ETriggerEvent::Triggered,
+			this,
+			&APlayerCharacterControllerBase::HandleJump
+		);
+	}
 }
 
 void APlayerCharacterControllerBase::OnUnPossess()

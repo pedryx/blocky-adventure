@@ -9,7 +9,7 @@ class UInputMappingContext;
 class UEnhancedInputComponent;
 struct FInputActionValue;
 
-UCLASS(Abstract, Blueprintable)
+UCLASS()
 class BLOCKYADVENTURE_API APlayerCharacterControllerBase : public APlayerController
 {
 	GENERATED_BODY()
@@ -35,6 +35,7 @@ protected:
 
 private:
 	ACharacter* PlayerCharacter{};
+	UPROPERTY()
 	UEnhancedInputComponent* EnhancedInputComponent{};
 
 	void HandleMove(const FInputActionValue& InputActionValue);
