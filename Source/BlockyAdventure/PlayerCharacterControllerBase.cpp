@@ -1,4 +1,7 @@
 #include "PlayerCharacterControllerBase.h"
+#include "Chunk.h"
+#include "Sector.h"
+#include "BlockType.h"
 
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
@@ -44,6 +47,14 @@ void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 		ETriggerEvent::Triggered,
 		this,
 		&APlayerCharacterControllerBase::HandleJump
+	);
+
+	checkf(IsValid(ActionDestroyBlock), TEXT("ActionDestroyBlock was not specified."));
+	EnhancedInputComponent->BindAction(
+		ActionDestroyBlock,
+		ETriggerEvent::Triggered,
+		this,
+		&APlayerCharacterControllerBase::HandleDestroyBlock
 	);
 }
 
@@ -97,4 +108,54 @@ void APlayerCharacterControllerBase::HandleJump(const FInputActionValue& InputAc
 	}
 
 	PlayerCharacter->Jump();
+}
+
+void APlayerCharacterControllerBase::HandleDestroyBlock(const FInputActionValue& InputActionValue)
+{
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	FVector CameraLocation;
+	FRotator CameraRotator;
+	GetActorEyesViewPoint(CameraLocation, CameraRotator);
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(PlayerCharacter);
+
+	const FVector EndPoint{ CameraLocation + CameraRotator.Vector() * PlayerReach * AChunk::BLOCK_SIZE };
+	FHitResult HitResult;
+	
+	const bool bIsHit = GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		CameraLocation,
+		EndPoint,
+		ECollisionChannel::ECC_WorldStatic,
+		Params
+	);
+
+	if (bIsHit)
+	{
+		AChunk* Chunk = Cast<AChunk>(HitResult.GetActor());
+		checkf(IsValid(Chunk), TEXT("Linecast should capture only chunk."));
+
+		const FVector LineTraceDirection{ (EndPoint - CameraLocation).GetUnsafeNormal() };
+		// We need to offset impact point by some threshold, because wi need to get a position within a block.
+		const FVector WorldPosition{ HitResult.ImpactPoint + LineTraceDirection};
+
+		ASector* Sector{ Chunk->GetSector() };
+		const FIntVector BlockPosition = Sector->GetBlockPosition(WorldPosition);
+		Sector->SetBlock(BlockPosition, FBlockType::AIR_ID);
+		Sector->GetChunk(BlockPosition)->CreateMesh();
+
+		// We need to regenerate also chunk of block behind, because that block can have missing face,
+		// We to offset the impact point by a value which will ensure that we will get block from neighbor chunk.
+		const FVector BlockBehindWorldPosition{ HitResult.ImpactPoint + LineTraceDirection * AChunk::BLOCK_SIZE * 2 };
+		const FIntVector BehindBlockPosition = Sector->GetBlockPosition(BlockBehindWorldPosition);
+		if (Sector->IsBlockInBounds(BehindBlockPosition))
+		{
+			Sector->GetChunk(BehindBlockPosition)->CreateMesh();
+		}
+	}
 }

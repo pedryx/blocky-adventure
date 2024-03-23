@@ -21,17 +21,11 @@ void AChunk::BeginPlay()
 
 void AChunk::Generate()
 {
-	MeshVertices.Empty();
-	MeshIndices.Empty();
-	MeshNormals.Empty();
-	MeshColors.Empty();
-
-
 	for (int32 X = 0; X < SIZE; ++X)
 	{
 		for (int32 Y = 0; Y < SIZE; ++Y)
 		{
-			const FIntVector InSectorPosition = GetInSectorPosition(FIntVector{ X, Y, 0 });
+			const FIntVector InSectorPosition = GetBlockInSectorPosition(FIntVector{ X, Y, 0 });
 			const int32 Height = Sector->ComputeHeight(FIntVector2{ InSectorPosition.X, InSectorPosition.Y });
 
 			for (int32 Z = 0; Z <= Height; ++Z)
@@ -61,6 +55,11 @@ void AChunk::Generate()
 
 void AChunk::CreateMesh()
 {
+	MeshVertices.Empty();
+	MeshIndices.Empty();
+	MeshNormals.Empty();
+	MeshColors.Empty();
+
 	for (int32 X = 0; X < SIZE; ++X)
 	{
 		for (int32 Y = 0; Y < SIZE; ++Y)
@@ -85,10 +84,10 @@ void AChunk::CreateMesh()
 	);
 }
 
-bool AChunk::IsAir(const FIntVector& BlockPosition) const
+bool AChunk::IsBlockAir(const FIntVector& BlockPosition) const
 {
-	if (!IsInBounds(BlockPosition)) {
-		return Sector->IsBlockAir(GetInSectorPosition(BlockPosition));
+	if (!IsBlockInBounds(BlockPosition)) {
+		return Sector->IsBlockAir(GetBlockInSectorPosition(BlockPosition));
 	}
 
 	return GetBlock(BlockPosition) == FBlockType::AIR_ID;
@@ -108,18 +107,18 @@ void AChunk::TryCreateBlock(const FIntVector& Position)
 	for (int32 i = 0; i < DIRECTION_COUNT; ++i)
 	{
 		const EDirection Direction{ static_cast<EDirection>(i) };
-		const FIntVector NeighborPosition{ Position + static_cast<FIntVector>(GetFaceNormal(Direction)) };
+		const FIntVector NeighborPosition{ Position + static_cast<FIntVector>(GetBlockFaceNormal(Direction)) };
 
-		if (IsAir(NeighborPosition))
+		if (IsBlockAir(NeighborPosition))
 		{
-			CreateFace(static_cast<FVector>(Position) * BLOCK_SIZE, Direction, BlockType);
+			CreateBlockFace(static_cast<FVector>(Position) * BLOCK_SIZE, Direction, BlockType);
 		}
 	}
 }
 
-void AChunk::CreateFace(const FVector& Position, const EDirection Direction, const FBlockType& BlockType)
+void AChunk::CreateBlockFace(const FVector& Position, const EDirection Direction, const FBlockType& BlockType)
 {
-	const FVector Normal = GetFaceNormal(Direction);
+	const FVector Normal = GetBlockFaceNormal(Direction);
 
 	for (int32 i = 0; i < FACE_VERTICES_COUNT; ++i)
 	{
@@ -136,7 +135,7 @@ void AChunk::CreateFace(const FVector& Position, const EDirection Direction, con
 	}
 }
 
-FVector AChunk::GetFaceNormal(const EDirection Face) const
+FVector AChunk::GetBlockFaceNormal(const EDirection Face) const
 {
 	switch (Face)
 	{

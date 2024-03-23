@@ -24,10 +24,16 @@ public:
 	UInputAction* ActionJump{};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
-	TObjectPtr<UInputMappingContext> InputMappingContext{};
+	UInputAction* ActionDestroyBlock{};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
+	TObjectPtr<UInputMappingContext> InputMappingContext{};
+
+	UPROPERTY(EditAnywhere, Category = "Player Input")
 	float MovementSpeed{ 1.0f };
+
+	UPROPERTY(EditAnywhere, Category = "Player Input")
+	float PlayerReach{ 5.0f };
 
 protected:
 	void OnPossess(APawn* InPawn) override;
@@ -40,4 +46,5 @@ private:
 	void HandleMove(const FInputActionValue& InputActionValue);
 	void HandleLook(const FInputActionValue& InputActionValue);
 	void HandleJump(const FInputActionValue& InputActionValue);
+	void HandleDestroyBlock(const FInputActionValue& InputActionValue);
 };

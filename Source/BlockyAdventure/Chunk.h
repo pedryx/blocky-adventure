@@ -73,14 +73,14 @@ public:
 	/**
 	 * Determine if block at specified position, local to chunk, is air.
 	 */
-	bool IsAir(const FIntVector& BlockPosition) const;
+	bool IsBlockAir(const FIntVector& BlockPosition) const;
 
 	/**
 	* Set block at specified position, local to this chunk, to a block type with specified ID.
 	*/
 	void SetBlock(const FIntVector& BlockPosition, const BlockTypeID ID)
 	{
-		checkf(IsInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
+		checkf(IsBlockInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
 
 		Blocks[GetBlockIndex(BlockPosition)] = ID;
 	}
@@ -90,9 +90,28 @@ public:
 	 */
 	BlockTypeID GetBlock(const FIntVector& BlockPosition) const
 	{
-		checkf(IsInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
+		checkf(IsBlockInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
 
 		return Blocks[GetBlockIndex(BlockPosition)];
+	}
+
+	/**
+	 * Get sector which owns this chunk.
+	 */
+	ASector* GetSector() const { return Sector; }
+
+	/**
+	 * Get coordinates of this chunk within a sector to which this chunk belongs.
+	 */
+	FIntVector2 GetCoord() const { return ChunkCoord; }
+
+	/**
+	 * Determine if block position, local to this chunk, is within chunk bounds.
+	 */
+	bool IsBlockInBounds(const FIntVector& BlockPosition) const
+	{
+		return BlockPosition.X >= 0 && BlockPosition.Y >= 0 && BlockPosition.Z >= 0
+			&& BlockPosition.X < SIZE && BlockPosition.Y < SIZE && BlockPosition.Z < HEIGHT;
 	}
 protected:
 	virtual void BeginPlay() override;
@@ -149,7 +168,7 @@ private:
 	 * \param Direction Direction of the face of the block.
 	 * \param BlockType Type of block.
 	 */
-	void CreateFace(const FVector& Position, const EDirection Direction, const FBlockType& BlockType);
+	void CreateBlockFace(const FVector& Position, const EDirection Direction, const FBlockType& BlockType);
 
 	/**
 	 * Get normal vector of the face of the block.
@@ -157,7 +176,7 @@ private:
 	 * \param Face Direction which represent the face of the block.
 	 * \return Normal vector of the face of the block.
 	 */
-	FVector GetFaceNormal(const EDirection Face) const;
+	FVector GetBlockFaceNormal(const EDirection Face) const;
 
 	/**
 	 * Convert block position, local to this chunk, into an index which can be used to index chunk's blocks.
@@ -168,18 +187,9 @@ private:
 	}
 
 	/**
-	 * Determine if block position, local to this chunk, is within chunk bounds.
-	 */
-	bool IsInBounds(const FIntVector& BlockPosition) const
-	{
-		return BlockPosition.X >= 0 && BlockPosition.Y >= 0 && BlockPosition.Z >= 0
-			&& BlockPosition.X < SIZE && BlockPosition.Y < SIZE && BlockPosition.Z < HEIGHT;
-	}
-
-	/**
 	 * Transform a specified position, local to this chunk, into position local to this sector.
 	 */
-	FIntVector GetInSectorPosition(const FIntVector& BlockPosition) const
+	FIntVector GetBlockInSectorPosition(const FIntVector& BlockPosition) const
 	{
 		return FIntVector{ ChunkCoord.X * SIZE, ChunkCoord.Y * SIZE, 0 } + BlockPosition;
 	}

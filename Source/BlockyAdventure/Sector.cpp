@@ -7,6 +7,24 @@ ASector::ASector()
 	PrimaryActorTick.bCanEverTick = false;
 }
 
+FIntVector ASector::GetBlockPosition(const FVector& WorldPosition) const
+{
+	FIntVector BlockPosition{
+		static_cast<int>(WorldPosition.X) / AChunk::BLOCK_SIZE,
+		static_cast<int>(WorldPosition.Y) / AChunk::BLOCK_SIZE,
+		static_cast<int>(WorldPosition.Z) / AChunk::BLOCK_SIZE
+	};
+
+	return BlockPosition;
+}
+
+void ASector::SetBlock(const FIntVector& BlockPosition, BlockTypeID ID)
+{
+	AChunk* Chunk = GetChunk(BlockPosition);
+	const FIntVector InChunkBlockPosition = GetInChunkBlockPosition(Chunk, BlockPosition);
+	Chunk->SetBlock(InChunkBlockPosition, ID);
+}
+
 void ASector::BeginPlay()
 {
 	Super::BeginPlay();
@@ -67,24 +85,44 @@ void ASector::CreateMesh()
 
 bool ASector::IsBlockAir(const FIntVector& BlockPosition) const
 {
-	if (!IsInBounds(BlockPosition))
+	if (!IsBlockInBounds(BlockPosition))
 	{
 		return true;
 	}
 
-	const int32 ChunkX = BlockPosition.X / AChunk::SIZE;
-	const int32 ChunkY = BlockPosition.Y / AChunk::SIZE;
-	const int32 ChunkIndex = ChunkX * SIZE + ChunkY;
-	const FIntVector InChunkPosition{ BlockPosition - FIntVector{ ChunkX * AChunk::SIZE, ChunkY * AChunk::SIZE, 0 } };
+	const AChunk* Chunk = GetChunk(BlockPosition);
+	const FIntVector InChunkPosition = GetInChunkBlockPosition(Chunk, BlockPosition);
 
-	return Chunks[ChunkIndex]->IsAir(InChunkPosition);
+	return Chunk->IsBlockAir(InChunkPosition);
 }
 
-bool ASector::IsInBounds(const FIntVector& BlockPosition) const
+bool ASector::IsBlockInBounds(const FIntVector& BlockPosition) const
 {
 	return BlockPosition.X >= 0 && BlockPosition.Y >= 0 && BlockPosition.Z >= 0
 		&& BlockPosition.X < AChunk::SIZE * SIZE && BlockPosition.Y < AChunk::SIZE * SIZE
 		&& BlockPosition.Z < AChunk::HEIGHT;
+}
+
+AChunk* ASector::GetChunk(const FIntVector& BlockPosition) const
+{
+	const int32 ChunkX = BlockPosition.X / AChunk::SIZE;
+	const int32 ChunkY = BlockPosition.Y / AChunk::SIZE;
+	const int32 ChunkIndex = ChunkX * SIZE + ChunkY;
+
+	return Chunks[ChunkIndex];
+}
+
+FIntVector ASector::GetInChunkBlockPosition(const AChunk* Chunk, const FIntVector& BlockPosition) const
+{
+	const FIntVector2 ChunkCoord = Chunk->GetCoord();
+	const FIntVector InChunkPosition{ BlockPosition - FIntVector{ 
+		ChunkCoord.X * AChunk::SIZE,
+		ChunkCoord.Y * AChunk::SIZE,
+		0
+	} };
+	checkf(Chunk->IsBlockInBounds(InChunkPosition), TEXT("Block is not within chunk bounds."));
+
+	return InChunkPosition;
 }
 
 int32 ASector::ComputeHeight(const FIntVector2& BlockPosition) const
