@@ -54,6 +54,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Player Input")
 	float PlayerReach{ 5.0f };
 
+	UPROPERTY(EditAnywhere, Category = "Player Input")
+	TSubclassOf<AActor> WireframeClass{};
+
 protected:
 	void OnPossess(APawn* InPawn) override;
 	void OnUnPossess() override;
@@ -62,6 +65,7 @@ private:
 	TObjectPtr<ACharacter> PlayerCharacter{};
 	TObjectPtr<UEnhancedInputComponent> EnhancedInputComponent{};
 	BlockTypeID SelectedBlockID{ 1 };
+	TObjectPtr<AActor> WireframeActor{};
 
 	void HandleMove(const FInputActionValue& InputActionValue);
 	void HandleLook(const FInputActionValue& InputActionValue);
@@ -71,10 +75,21 @@ private:
 	void HandleChangeSlot(const FInputActionValue& InputActionValue);
 
 	/**
-	 * Line cast from player into the world. When line cast succed get a block at result position and set it to a
+	 * Line trace from player to game world.
+	 */
+	bool TryLineTraceFromPlayer(FHitResult& OutHitResult) const;
+
+	/**
+	 * Line trace from player into the world. When line trace succed get a block at result position and set it to a
 	 * block of a type of a specified ID.
-	 * 
-	 * @param offset Block will be picked by hit position which can be offseted by this parameter.
 	 */
 	void TrySetLineTracedBlock(const BlockTypeID ID) const;
+	/**
+	 * Update position of wireframe actor into a new location based on block onto which is player currently looking.
+	 */
+	void UpdateWireframePosition() const;
+	/**
+	 * Determine if player intersect with a block at a specified position.
+	 */
+	bool DoPlayerIntersect(const FIntVector& BlockPosition) const;
 };

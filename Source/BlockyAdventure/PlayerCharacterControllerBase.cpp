@@ -9,6 +9,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "UObject/ConstructorHelpers.h"
 
 void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 {
@@ -26,6 +27,9 @@ void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 	checkf(InputMappingContext, TEXT("InputMappingContext was not specified."));
 	InputSubsystem->ClearAllMappings();
 	InputSubsystem->AddMappingContext(InputMappingContext, 0);
+
+	WireframeActor = GetWorld()->SpawnActor(WireframeClass);
+	WireframeActor->SetActorHiddenInGame(true);
 
 	checkf(IsValid(ActionMove), TEXT("ActionMove was not specified."));
 	EnhancedInputComponent->BindAction(
@@ -148,6 +152,8 @@ void APlayerCharacterControllerBase::HandleLook(const FInputActionValue& InputAc
 
 	AddYawInput(LookDirection.X);
 	AddPitchInput(-LookDirection.Y);
+	
+	UpdateWireframePosition();
 }
 
 void APlayerCharacterControllerBase::HandleJump(const FInputActionValue& InputActionValue)
@@ -194,9 +200,10 @@ void APlayerCharacterControllerBase::HandleChangeSlot(const FInputActionValue& I
 
 	const float Value{ InputActionValue.Get<float>() };
 	SelectedBlockID = static_cast<BlockTypeID>(Value) - 1;
+	UpdateWireframePosition();
 }
 
-void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID BlockTypeID) const
+bool APlayerCharacterControllerBase::TryLineTraceFromPlayer(FHitResult& OutHitResult) const
 {
 	FVector CameraLocation;
 	FRotator CameraRotator;
@@ -204,45 +211,50 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(PlayerCharacter);
+	Params.AddIgnoredActor(WireframeActor);
 
 	const FVector EndPoint{ CameraLocation + CameraRotator.Vector() * PlayerReach * AChunk::BLOCK_SIZE };
-	FHitResult HitResult;
 
 	const bool bIsHit = GetWorld()->LineTraceSingleByChannel(
-		HitResult,
+		OutHitResult,
 		CameraLocation,
 		EndPoint,
 		ECollisionChannel::ECC_WorldStatic,
 		Params
 	);
 
+	return bIsHit;
+}
+
+
+void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID BlockTypeID) const
+{
+	FHitResult HitResult;
+	const bool bIsHit{ TryLineTraceFromPlayer(HitResult) };
+
 	if (!bIsHit)
 	{
 		return;
 	}
 
-	TObjectPtr<AGameWorld> GameWorld = Cast<AChunk>(HitResult.GetActor())->GetGameWorld();
+	const TObjectPtr<AGameWorld> GameWorld = Cast<AChunk>(HitResult.GetActor())->GetGameWorld();
 
 	// We need to offset impact point by some threshold, because we need to get a position within a block.
 	const float Offset{ BlockTypeID == FBlockType::AIR_ID ? -1.0f : 1.0f };
-	FIntVector BlockPosition{ GameWorld->GetBlockPosition(HitResult.ImpactPoint + HitResult.ImpactNormal * Offset) };
+	const FIntVector BlockPosition
+	{
+		GameWorld->GetBlockPosition(HitResult.ImpactPoint + HitResult.ImpactNormal * Offset)
+	};
 
 	if (!GameWorld->IsBlockInBounds(BlockPosition))
 	{
 		return;
 	}
 
-	if (BlockTypeID != FBlockType::AIR_ID)
+	// Block could be placed inside player.
+	if (BlockTypeID != FBlockType::AIR_ID && DoPlayerIntersect(BlockPosition))
 	{
-		// Block could be placed inside player.
-		const FVector MinPoint{ static_cast<FVector>(BlockPosition) };
-		const FVector MaxPoint{ MinPoint + FVector{ 1, 1, 1 } };
-		const FBox BlockBox{ MinPoint * AChunk::BLOCK_SIZE, MaxPoint * AChunk::BLOCK_SIZE };
-
-		if (PlayerCharacter->GetCapsuleComponent()->Bounds.GetBox().Intersect(BlockBox))
-		{
-			return;
-		}
+		return;
 	}
 
 	GameWorld->GetBlock(BlockPosition) = BlockTypeID;
@@ -274,4 +286,47 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 			}
 		}
 	}
+
+	UpdateWireframePosition();
+}
+
+void APlayerCharacterControllerBase::UpdateWireframePosition() const
+{
+	FHitResult HitResult;
+	const bool bIsHit{ TryLineTraceFromPlayer(HitResult) };
+
+	if (!bIsHit || SelectedBlockID == FBlockType::AIR_ID)
+	{
+		WireframeActor->SetActorHiddenInGame(true);
+		return;
+	}
+
+	const TObjectPtr<AGameWorld> GameWorld = Cast<AChunk>(HitResult.GetActor())->GetGameWorld();
+	const FIntVector BlockPosition{ GameWorld->GetBlockPosition(HitResult.ImpactPoint + HitResult.ImpactNormal) };
+
+	if (DoPlayerIntersect(BlockPosition))
+	{
+		WireframeActor->SetActorHiddenInGame(true);
+		return;
+	}
+
+	const FVector NewWireframePosition
+	{
+		static_cast<FVector>(BlockPosition) * AChunk::BLOCK_SIZE
+			+ FVector{ AChunk::BLOCK_SIZE, AChunk::BLOCK_SIZE, AChunk::BLOCK_SIZE } / 2
+	};
+
+	WireframeActor->SetActorHiddenInGame(false);
+	FTransform Transform{ WireframeActor->GetActorTransform() };
+	Transform.SetTranslation(NewWireframePosition);
+	WireframeActor->SetActorTransform(Transform);
+}
+
+bool APlayerCharacterControllerBase::DoPlayerIntersect(const FIntVector& BlockPosition) const
+{
+	const FVector MinPoint{ static_cast<FVector>(BlockPosition) };
+	const FVector MaxPoint{ MinPoint + FVector{ 1, 1, 1 } };
+	const FBox BlockBox{ MinPoint * AChunk::BLOCK_SIZE, MaxPoint * AChunk::BLOCK_SIZE };
+
+	return PlayerCharacter->GetCapsuleComponent()->Bounds.GetBox().Intersect(BlockBox);
 }
