@@ -2,14 +2,17 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Octave.h"
 #include "BlockType.h"
 #include "Sector.generated.h"
 
+class AGameWorld;
 class AChunk;
 
+/**
+ * Represent a sector within the game world. Sector is composed out of chunks.
+ */
 UCLASS()
-class BLOCKYADVENTURE_API ASector : public AActor
+class BLOCKYADVENTURE_API ASector final : public AActor
 {
 	GENERATED_BODY()
 	
@@ -17,33 +20,15 @@ public:
 	ASector();
 
 	/**
-	 * Material used for blocks.
-	 */
-	UPROPERTY(EditInstanceOnly, Category = "Sector")
-	TObjectPtr<UMaterialInterface> Material;
-
-	/**
-	 * Octaves used for generating height map.
-	 */
-	UPROPERTY(EditInstanceOnly, Category = "Sector")
-	TArray<FOctave> Octaves;
-
-	/**
 	 * Number of chunks in X and Y dimensions.
 	 */
 	inline static constexpr int32 SIZE{ 8 };
 
-	/**
-	 * Generate terrain and create mesh for the sector.
-	 */
-	UFUNCTION(CallInEditor, Category = "Sector")
-	void Create();
-
-	/**
-	 * Destroy all the chunks.
-	 */
-	UFUNCTION(CallInEditor, Category = "Sector")
-	void Clear();
+	void Initialize(const TObjectPtr<AGameWorld> InGameWorld, const FIntVector& InPosition)
+	{
+		GameWorld = InGameWorld;
+		Position = InPosition;
+	}
 
 	/**
 	 * Generate terrain for each chunk within this sector.
@@ -52,51 +37,48 @@ public:
 
 	/**
 	 * Create mesh for each chunk within this sector.
-	 * 
 	 */
 	void CreateMesh();
 
 	/**
-	 * Determine if a block at specified position, local to this sector, is an air (empty) block.  Blocks outside of
-	 * this sector are also considered as air.
+	 * Get a game world to which this sector belongs.
 	 */
-	bool IsBlockAir(const FIntVector& BlockPosition) const;
+	TObjectPtr<AGameWorld> GetGameWorld() const { return GameWorld; }
 
 	/**
-	 * Compute height for block at a specified XY position, local to this sector.
+	 * Get chunk to which a block at a specified position belongs. Specified position must be within this sector
+	 * bounds.
 	 */
-	int32 ComputeHeight(const FIntVector2& BlockPosition) const;
+	TObjectPtr<AChunk> GetChunk(const FIntVector& BlockPosition);
 
 	/**
-	 * Get position of a block, local to this sector, from the world position.
+	 * Get a reference to a block at specified position. Specified position must be in the bounds of this sector.
 	 */
-	FIntVector GetBlockPosition(const FVector& WorldPosition) const;
+	BlockTypeID& GetBlock(const FIntVector& BlockPosition);
 
 	/**
-	 * Set a block at a specified position, local to this sector, into a block of a type with a specified id.
-	 */
-	void SetBlock(const FIntVector& BlockPosition, BlockTypeID ID);
-
-	/**
-	 * Get chunk to which a block with a specified position, local to this sector, belongs.
-	 */
-	AChunk* GetChunk(const FIntVector& BlockPosition) const;
-
-	/**
-	 * Determine if a block at specified position, local to this sector, is in sector bounds.
+	 * Determine if a block at a specified position is within the bounds of this sector.
 	 */
 	bool IsBlockInBounds(const FIntVector& BlockPosition) const;
-protected:
-	virtual void BeginPlay() override;
+	
+	/**
+	 * Get the position of the left-back-down corner of the sector.
+	 * 
+	 * \return 
+	 */
+	FIntVector GetPosition() const { return Position; }
 
 private:
 	/**
-	 * Contains all chunks, which belong to this sector.
+	 * Contains all chunks, which belong to this sector. Chunks are mapped into flat array, first by X, then by Y.
 	 */
-	TArray<AChunk*> Chunks;
-
+	TArray<TObjectPtr<AChunk>> Chunks;
 	/**
-	 * Get a position, local to a specified chunk, from a specified block position, local to this sector.
+	 * Game world to which this sector belongs.
 	 */
-	FIntVector GetInChunkBlockPosition(const AChunk* Chunk, const FIntVector& BlockPosition) const;
+	TObjectPtr<AGameWorld> GameWorld;
+	/**
+	 * Position of the left-back-down corner of the sector.
+	 */
+	FIntVector Position;
 };

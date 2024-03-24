@@ -16,19 +16,19 @@ class BLOCKYADVENTURE_API APlayerCharacterControllerBase : public APlayerControl
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditDefaultsOnly, Category="Player Input")
-	UInputAction* ActionMove{};
+	TObjectPtr<UInputAction> ActionMove{};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
-	UInputAction* ActionLook{};
+	TObjectPtr<UInputAction> ActionLook{};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
-	UInputAction* ActionJump{};
+	TObjectPtr<UInputAction> ActionJump{};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
-	UInputAction* ActionDestroyBlock{};
+	TObjectPtr<UInputAction> ActionDestroyBlock{};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
-	UInputAction* ActionPlaceBlock{};
+	TObjectPtr<UInputAction> ActionPlaceBlock{};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
 	TObjectPtr<UInputMappingContext> InputMappingContext{};
@@ -44,8 +44,8 @@ protected:
 	void OnUnPossess() override;
 
 private:
-	ACharacter* PlayerCharacter{};
-	UEnhancedInputComponent* EnhancedInputComponent{};
+	TObjectPtr<ACharacter> PlayerCharacter{};
+	TObjectPtr<UEnhancedInputComponent> EnhancedInputComponent{};
 
 	void HandleMove(const FInputActionValue& InputActionValue);
 	void HandleLook(const FInputActionValue& InputActionValue);
@@ -59,5 +59,5 @@ private:
 	 * 
 	 * @param offset Block will be picked by hit position which can be offseted by this parameter.
 	 */
-	void TrySetLineTracedBlock(BlockTypeID ID, float offset);
+	void TrySetLineTracedBlock(const BlockTypeID ID) const;
 };

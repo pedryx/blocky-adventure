@@ -7,6 +7,7 @@
 #include "Chunk.generated.h"
 
 class UProceduralMeshComponent;
+class AGameWorld;
 class ASector;
 
 /**
@@ -14,7 +15,7 @@ class ASector;
  * from chunks. Each chunk has its own mesh.
  */
 UCLASS()
-class BLOCKYADVENTURE_API AChunk : public AActor
+class BLOCKYADVENTURE_API AChunk final : public AActor
 {
 	GENERATED_BODY()
 
@@ -46,18 +47,14 @@ public:
 	 */
 	inline static constexpr int32 BLOCK_SIZE{ 100 };
 	/**
-	 * Size of chunk in X and Y dimension.
+	 * World size of chunk in X and Y dimension.
 	 */
-	inline static constexpr int32 TOTAL_SIZE{ AChunk::SIZE * AChunk::BLOCK_SIZE };
+	inline static constexpr int32 TOTAL_SIZE{ SIZE * BLOCK_SIZE };
 
-	void Initialize(
-		const FIntVector2& InChunkCoord,
-		TObjectPtr<UMaterialInterface> InMaterial, 
-		TObjectPtr<ASector> InSector
-	) {
-		ChunkCoord = InChunkCoord;
-		Material = InMaterial;
+	void Initialize(const TObjectPtr<ASector> InSector, const FIntVector& InPosition)
+	{
 		Sector = InSector;
+		Position = InPosition;
 	}
 
 	/**
@@ -71,63 +68,48 @@ public:
 	void CreateMesh();
 
 	/**
-	 * Determine if block at specified position, local to chunk, is air.
+	 * Get a game world which owns sector which owns this chunk.
 	 */
-	bool IsBlockAir(const FIntVector& BlockPosition) const;
+	TObjectPtr<AGameWorld> GetGameWorld();
 
 	/**
-	* Set block at specified position, local to this chunk, to a block type with specified ID.
-	*/
-	void SetBlock(const FIntVector& BlockPosition, const BlockTypeID ID)
-	{
-		checkf(IsBlockInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
-
-		Blocks[GetBlockIndex(BlockPosition)] = ID;
-	}
+	 * Get a sector which owns this chunk.
+	 */
+	TObjectPtr<ASector> GetSector() const { return Sector; }
 
 	/**
-	 * Get block type ID of block at specified position, local to this chunk.
+	 * Get a reference to a block at specified position. Specified position must be in the bounds of this chunk.
 	 */
-	BlockTypeID GetBlock(const FIntVector& BlockPosition) const
-	{
-		checkf(IsBlockInBounds(BlockPosition), TEXT("Position is outside of chunk bounds"));
-
-		return Blocks[GetBlockIndex(BlockPosition)];
-	}
+	BlockTypeID& GetBlock(const FIntVector& BlockPosition);
 
 	/**
-	 * Get sector which owns this chunk.
+	 * Determine if a block at a specified position is within the bounds of this chunk.
 	 */
-	ASector* GetSector() const { return Sector; }
-
-	/**
-	 * Get coordinates of this chunk within a sector to which this chunk belongs.
-	 */
-	FIntVector2 GetCoord() const { return ChunkCoord; }
-
-	/**
-	 * Determine if block position, local to this chunk, is within chunk bounds.
-	 */
-	bool IsBlockInBounds(const FIntVector& BlockPosition) const
-	{
-		return BlockPosition.X >= 0 && BlockPosition.Y >= 0 && BlockPosition.Z >= 0
-			&& BlockPosition.X < SIZE && BlockPosition.Y < SIZE && BlockPosition.Z < HEIGHT;
-	}
-protected:
-	virtual void BeginPlay() override;
+	bool IsBlockInBounds(const FIntVector& BlockPosition) const;
 
 private:
+	/**
+	 * Mesh for blocks which belongs to this chunk.
+	 */
 	TObjectPtr<UProceduralMeshComponent> MeshComponent;
 	TArray<FVector> MeshVertices;
 	TArray<int32> MeshIndices;
 	TArray<FVector> MeshNormals;
 	TArray<FColor> MeshColors;
 
+	/**
+	 * Represent this chunk. Blocks are mapped into flat array, first by Z, then by Y, then by X. Each block is
+	 * represented by aits ID. Air (empty) blocks are represented by air block ID.
+	 */
 	TArray<BlockTypeID> Blocks;
-
-	FIntVector2 ChunkCoord;
-	TObjectPtr<UMaterialInterface> Material;
+	/**
+	 * Represent a sector to which this chunk belongs.
+	 */
 	TObjectPtr<ASector> Sector;
+	/**
+	 * Position of the left-back-down corner of the chunk.
+	 */
+	FIntVector Position;
 
 	const FVector BlockVertices[8]
 	{
@@ -156,19 +138,10 @@ private:
 	inline static constexpr int32 FACE_VERTICES_COUNT{ 4 };
 
 	/**
-	 * Try to create mesh for all visible faces of the block at specified position, local to this chunk. Will create no
+	 * Try to create mesh for all visible faces of the block at specified position. Will create no
 	 * mesh when no face of the block is visible. Create mesh data will be appended to the chunk mesh data.
 	 */
-	void TryCreateBlock(const FIntVector& Position);
-
-	/**
-	 * Append mesh data for one face of the block.
-	 * 
-	 * \param Position Position of the block, local to this chunk.
-	 * \param Direction Direction of the face of the block.
-	 * \param BlockType Type of block.
-	 */
-	void CreateBlockFace(const FVector& Position, const EDirection Direction, const FBlockType& BlockType);
+	void CreateBlockMesh(const FIntVector& BlockPosition);
 
 	/**
 	 * Get normal vector of the face of the block.
@@ -179,18 +152,11 @@ private:
 	FVector GetBlockFaceNormal(const EDirection Face) const;
 
 	/**
-	 * Convert block position, local to this chunk, into an index which can be used to index chunk's blocks.
+	 * Append mesh data for one face of the block.
+	 * 
+	 * \param Position Position of the block, local to this chunk.
+	 * \param Direction Direction of the face of the block.
+	 * \param BlockType Type of block.
 	 */
-	int32 GetBlockIndex(const FIntVector& BlockPosition) const
-	{
-		return BlockPosition.Z * SIZE * SIZE + BlockPosition.Y * SIZE + BlockPosition.X;
-	}
-
-	/**
-	 * Transform a specified position, local to this chunk, into position local to this sector.
-	 */
-	FIntVector GetBlockInSectorPosition(const FIntVector& BlockPosition) const
-	{
-		return FIntVector{ ChunkCoord.X * SIZE, ChunkCoord.Y * SIZE, 0 } + BlockPosition;
-	}
+	void CreateBlockFace(const FVector& InChunkPosition, const EDirection Direction, const BlockTypeID BlockTypeID);
 };
