@@ -31,6 +31,21 @@ public:
 	TObjectPtr<UInputAction> ActionPlaceBlock{};
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
+	TObjectPtr<UInputAction> ActionSelectSlot1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
+	TObjectPtr<UInputAction> ActionSelectSlot2;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
+	TObjectPtr<UInputAction> ActionSelectSlot3;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
+	TObjectPtr<UInputAction> ActionSelectSlot4;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
+	TObjectPtr<UInputAction> ActionSelectSlot5;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
 	TObjectPtr<UInputMappingContext> InputMappingContext{};
 
 	UPROPERTY(EditAnywhere, Category = "Player Input")
@@ -46,12 +61,14 @@ protected:
 private:
 	TObjectPtr<ACharacter> PlayerCharacter{};
 	TObjectPtr<UEnhancedInputComponent> EnhancedInputComponent{};
+	BlockTypeID SelectedBlockID{ 1 };
 
 	void HandleMove(const FInputActionValue& InputActionValue);
 	void HandleLook(const FInputActionValue& InputActionValue);
 	void HandleJump(const FInputActionValue& InputActionValue);
 	void HandleDestroyBlock(const FInputActionValue& InputActionValue);
 	void HandlePlaceBlock(const FInputActionValue& InputActionValue);
+	void HandleChangeSlot(const FInputActionValue& InputActionValue);
 
 	/**
 	 * Line cast from player into the world. When line cast succed get a block at result position and set it to a

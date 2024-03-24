@@ -66,6 +66,46 @@ void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 		this,
 		&APlayerCharacterControllerBase::HandlePlaceBlock
 	);
+
+	checkf(IsValid(ActionSelectSlot1), TEXT("ActionSelectSlot1 was not specified."));
+	EnhancedInputComponent->BindAction(
+		ActionSelectSlot1,
+		ETriggerEvent::Triggered,
+		this,
+		&APlayerCharacterControllerBase::HandleChangeSlot
+	);
+
+	checkf(IsValid(ActionSelectSlot2), TEXT("ActionSelectSlot2 was not specified."));
+	EnhancedInputComponent->BindAction(
+		ActionSelectSlot2,
+		ETriggerEvent::Triggered,
+		this,
+		&APlayerCharacterControllerBase::HandleChangeSlot
+	);
+
+	checkf(IsValid(ActionSelectSlot3), TEXT("ActionSelectSlot3 was not specified."));
+	EnhancedInputComponent->BindAction(
+		ActionSelectSlot3,
+		ETriggerEvent::Triggered,
+		this,
+		&APlayerCharacterControllerBase::HandleChangeSlot
+	);
+
+	checkf(IsValid(ActionSelectSlot4), TEXT("ActionSelectSlot4 was not specified."));
+	EnhancedInputComponent->BindAction(
+		ActionSelectSlot4,
+		ETriggerEvent::Triggered,
+		this,
+		&APlayerCharacterControllerBase::HandleChangeSlot
+	);
+
+	checkf(IsValid(ActionSelectSlot5), TEXT("ActionSelectSlot5 was not specified."));
+	EnhancedInputComponent->BindAction(
+		ActionSelectSlot5,
+		ETriggerEvent::Triggered,
+		this,
+		&APlayerCharacterControllerBase::HandleChangeSlot
+	);
 }
 
 void APlayerCharacterControllerBase::OnUnPossess()
@@ -137,7 +177,23 @@ void APlayerCharacterControllerBase::HandlePlaceBlock(const FInputActionValue& I
 		return;
 	}
 
-	TrySetLineTracedBlock(FBlockType::Stone.ID);
+	if (SelectedBlockID == FBlockType::AIR_ID)
+	{
+		return;
+	}
+
+	TrySetLineTracedBlock(SelectedBlockID);
+}
+
+void APlayerCharacterControllerBase::HandleChangeSlot(const FInputActionValue& InputActionValue)
+{
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	const float Value{ InputActionValue.Get<float>() };
+	SelectedBlockID = static_cast<BlockTypeID>(Value) - 1;
 }
 
 void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID BlockTypeID) const
