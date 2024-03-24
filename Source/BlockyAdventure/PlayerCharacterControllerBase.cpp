@@ -176,6 +176,19 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 		return;
 	}
 
+	if (BlockTypeID != FBlockType::AIR_ID)
+	{
+		// Block could be placed inside player.
+		const FVector MinPoint{ static_cast<FVector>(BlockPosition) };
+		const FVector MaxPoint{ MinPoint + FVector{ 1, 1, 1 } };
+		const FBox BlockBox{ MinPoint * AChunk::BLOCK_SIZE, MaxPoint * AChunk::BLOCK_SIZE };
+
+		if (PlayerCharacter->GetCapsuleComponent()->Bounds.GetBox().Intersect(BlockBox))
+		{
+			return;
+		}
+	}
+
 	GameWorld->GetBlock(BlockPosition) = BlockTypeID;
 	TObjectPtr<AChunk> Chunk{ GameWorld->GetChunk(BlockPosition) };
 	Chunk->CreateMesh();
