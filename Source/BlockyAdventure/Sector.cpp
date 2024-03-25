@@ -5,6 +5,8 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/BoxComponent.h"
+#include "HAL/PlatformFilemanager.h"
+#include "Misc/FileHelper.h"
 
 ASector::ASector()
 {
@@ -26,6 +28,7 @@ void ASector::Initialize(
 	GameWorld = InGameWorld;
 	Position = InPosition;
 	bShouldIgnoreFirstOverlap = bInShouldIgnoreFirstOverlap;
+	FileName = FPaths::ProjectSavedDir() + FString::Printf(TEXT("/Sectors/sector_%d_%d.bin"), Position.X, Position.Y);
 
 	CreateChunks();
 }
@@ -93,6 +96,36 @@ bool ASector::IsBlockInBounds(const FIntVector& BlockPosition) const
 	};
 
 	return bIsLargerThanBottomLeftBack && bIsSmallerThanTopRightFront;
+}
+
+void ASector::SaveToFile() const
+{
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	IFileHandle* FileHandle = PlatformFile.OpenWrite(*FileName);
+	checkf(FileHandle, TEXT("Cannow write to the file."));
+
+	constexpr int32 CHUNK_SIZE{ AChunk::SIZE * AChunk::SIZE * AChunk::HEIGHT };
+
+	for (TObjectPtr<AChunk> Chunk : Chunks)
+	{
+		FileHandle->Write(Chunk->GetBlockData(), CHUNK_SIZE);
+	}
+	delete FileHandle;
+}
+
+void ASector::LoadFromFile()
+{
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	IFileHandle* FileHandle = PlatformFile.OpenRead(*FileName);
+	checkf(FileHandle, TEXT("Cannow read from the file."));
+
+	constexpr int32 CHUNK_SIZE{ AChunk::SIZE * AChunk::SIZE * AChunk::HEIGHT };
+
+	for (const TObjectPtr<AChunk> Chunk : Chunks)
+	{
+		FileHandle->Read(Chunk->GetBlockData(), CHUNK_SIZE);
+	}
+	delete FileHandle;
 }
 
 void ASector::CreateChunks()

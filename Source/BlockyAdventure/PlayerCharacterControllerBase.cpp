@@ -270,14 +270,24 @@ void APlayerCharacterControllerBase::HandleDebug(const FInputActionValue& InputA
 
 	if (CurrentTrace.GameWorld != nullptr)
 	{
-		static bool bSpawned{ true };
+		static bool bShouldSave{ true };
+		TObjectPtr<ASector> Sector{ CurrentTrace.GameWorld->GetSector(CurrentTrace.BlockPosition) };
 
-		if (bSpawned)
-			CurrentTrace.GameWorld->DespawnSector(FIntVector{ -1, 0, 0 });
+		if (bShouldSave)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Saving..."));
+			Sector->SaveToFile();
+		}
 		else
-			CurrentTrace.GameWorld->SpawnSector(FIntVector{ -1, 0, 0 });
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Loading..."));
+			Sector->LoadFromFile();
 
-		bSpawned = !bSpawned;
+			Sector->CreateMesh();
+			Sector->CookMesh(false);
+		}
+
+		bShouldSave = !bShouldSave;
 	}
 }
 

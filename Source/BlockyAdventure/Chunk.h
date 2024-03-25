@@ -92,6 +92,11 @@ public:
 	 */
 	bool IsBlockInBounds(const FIntVector& BlockPosition) const;
 
+	/**
+	 * Gete block data of this chunk.
+	 */
+	uint8* GetBlockData() { return Blocks.GetData(); }
+
 private:
 	/**
 	 * Mesh for blocks which belongs to this chunk.

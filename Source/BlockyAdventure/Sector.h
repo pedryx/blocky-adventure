@@ -81,6 +81,16 @@ public:
 	 */
 	bool IsReady() { return bIsReady; }
 
+	/**
+	 * Store block data of the sector into the sector file.
+	 */
+	void SaveToFile() const;
+
+	/**
+	 * Load block data of the sector from the sector file.
+	 */
+	void LoadFromFile();
+
 private:
 	/**
 	 * Contains all chunks, which belong to this sector. Chunks are mapped into flat array, first by X, then by Y.
@@ -107,6 +117,11 @@ private:
 	TObjectPtr<UBoxComponent> EastTrigger;
 	TObjectPtr<UBoxComponent> SouthTrigger;
 	TObjectPtr<UBoxComponent> WestTrigger;
+
+	/**
+	 * File name where block data will be stored.
+	 */
+	FString FileName;
 
 	void CreateChunks();
 
