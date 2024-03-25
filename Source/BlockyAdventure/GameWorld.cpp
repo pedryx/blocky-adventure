@@ -2,11 +2,14 @@
 #include "Octave.h"
 #include "Sector.h"
 #include "Chunk.h"
+
 #include "Components/SceneComponent.h"
+#include "Async/Async.h"
+#include "Async/Future.h"
 
 AGameWorld::AGameWorld()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	TObjectPtr<USceneComponent> SceneComponent{ CreateDefaultSubobject<USceneComponent>(TEXT("Root")) };
 	checkf(IsValid(SceneComponent), TEXT("Unable to create scene component."));
@@ -102,8 +105,23 @@ void AGameWorld::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SpawnSector(FIntVector::ZeroValue);
-	SpawnSector(FIntVector{ -1, 0, 0 });
+	SpawnSector(FIntVector::ZeroValue, false);
+}
+
+void AGameWorld::Tick(float DeltaSeconds)
+{
+	TObjectPtr<ASector> SectorToProcess{};
+	if (SectorsToProcess.Dequeue(SectorToProcess))
+	{
+		SectorToProcess->CookMesh(true);
+	}
+
+	TObjectPtr<ASector> SectorToDespawn{};
+	if (SectorsToDespawn.Peek(SectorToDespawn) && SectorToDespawn->IsReady())
+	{
+		SectorsToDespawn.Dequeue(SectorToDespawn);
+		DespawnSector(SectorToDespawn->GetPosition());
+	}
 }
 
 FIntVector AGameWorld::ConvertBlockPositionToSectorPosition(const FIntVector& BlockPosition) const
@@ -120,21 +138,38 @@ FIntVector AGameWorld::ConvertBlockPositionToSectorPosition(const FIntVector& Bl
 	return SectorPosition;
 }
 
-void AGameWorld::SpawnSector(const FIntVector& BlockPosition)
+void AGameWorld::SpawnSector(const FIntVector& BlockPosition, const bool bShouldIgnoreFirstOverlap)
 {
 	const FIntVector SectorPosition{ ConvertBlockPositionToSectorPosition(BlockPosition) };
+
+	if (DoContainsSector(SectorPosition))
+	{
+		return;
+	}
 
 	TObjectPtr<ASector> Sector = GetWorld()->SpawnActor<ASector>(
 		static_cast<FVector>(SectorPosition * AChunk::BLOCK_SIZE),
 		FRotator::ZeroRotator
 	);
 	checkf(IsValid(Sector), TEXT("Unable to spawn sector."));
-	bool s = Sector->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
-	Sector->Initialize(this, SectorPosition);
-
 	Sectors.Add(Sector);
-	Sector->Generate();
-	Sector->CreateMesh();
+	LastSpawnedSector = Sector;
+
+	Sector->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
+	Sector->Initialize(this, SectorPosition, bShouldIgnoreFirstOverlap);
+
+	auto DoWork = [Sector]()
+	{
+		Sector->Generate();
+		Sector->CreateMesh();
+	};
+
+	auto OnComplete = [this, Sector]()
+	{
+		SectorsToProcess.Enqueue(Sector);
+	};
+
+	Async(EAsyncExecution::ThreadPool, MoveTemp(DoWork), MoveTemp(OnComplete));
 }
 
 void AGameWorld::DespawnSector(const FIntVector& BlockPosition)
@@ -151,6 +186,12 @@ void AGameWorld::DespawnSector(const FIntVector& BlockPosition)
 	}
 	checkf(IsValid(Sector), TEXT("Sector is not spawned."));
 
+	if (!Sector->IsReady())
+	{
+		SectorsToDespawn.Enqueue(Sector);
+		return;
+	}
+
 	Sectors.RemoveSwap(Sector);
 
 	TArray<TObjectPtr<AActor>> AttachedActors;
@@ -161,4 +202,17 @@ void AGameWorld::DespawnSector(const FIntVector& BlockPosition)
 		Actor->Destroy();
 	}
 	Sector->Destroy();
+}
+
+bool AGameWorld::DoContainsSector(const FIntVector& SectorPosition)
+{
+	for (const TObjectPtr<const ASector> Sector : Sectors)
+	{
+		if (Sector->GetPosition() == SectorPosition)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

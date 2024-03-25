@@ -7,6 +7,7 @@
 
 class AGameWorld;
 class AChunk;
+class UBoxComponent;
 
 /**
  * Represent a sector within the game world. Sector is composed out of chunks.
@@ -21,14 +22,16 @@ public:
 
 	/**
 	 * Number of chunks in X and Y dimensions.
+	 * 
+	 * @param bInIgnoreFirstOverlap Determine if first overlap end event with sector trigger should be ignored.
 	 */
 	inline static constexpr int32 SIZE{ 8 };
 
-	void Initialize(const TObjectPtr<AGameWorld> InGameWorld, const FIntVector& InPosition)
-	{
-		GameWorld = InGameWorld;
-		Position = InPosition;
-	}
+	void Initialize(
+		const TObjectPtr<AGameWorld> InGameWorld, 
+		const FIntVector& InPosition, 
+		const bool bInShouldIgnoreFirstOverlap
+	);
 
 	/**
 	 * Generate terrain for each chunk within this sector.
@@ -39,6 +42,11 @@ public:
 	 * Create mesh for each chunk within this sector.
 	 */
 	void CreateMesh();
+
+	/**
+	 * Cook mesh for each chunk within this sector.
+	 */
+	void CookMesh(const bool bUseAsyncCooking);
 
 	/**
 	 * Get a game world to which this sector belongs.
@@ -68,6 +76,11 @@ public:
 	 */
 	FIntVector GetPosition() const { return Position; }
 
+	/**
+	 * Determine if sector is fully loaded with generated terrain, generated mesh and cooked up mesh.
+	 */
+	bool IsReady() { return bIsReady; }
+
 private:
 	/**
 	 * Contains all chunks, which belong to this sector. Chunks are mapped into flat array, first by X, then by Y.
@@ -81,4 +94,51 @@ private:
 	 * Position of the left-back-down corner of the sector.
 	 */
 	FIntVector Position;
+	bool bShouldIgnoreFirstOverlap;
+	/**
+	 * Determine if sector is fully loaded with generated terrain, generated mesh and cooked up mesh.
+	 */
+	bool bIsReady{ false };
+
+	TObjectPtr<USceneComponent> RootComponent;
+
+	TObjectPtr<UBoxComponent> SectorTrigger;
+	TObjectPtr<UBoxComponent> NorthTrigger;
+	TObjectPtr<UBoxComponent> EastTrigger;
+	TObjectPtr<UBoxComponent> SouthTrigger;
+	TObjectPtr<UBoxComponent> WestTrigger;
+
+	void CreateChunks();
+
+	void CreateTriggers();
+
+	void CreateTrigger(
+		TObjectPtr<UBoxComponent>& OutTrigger,
+		const FName& Name,
+		const FVector& Position,
+		const FVector& Size, 
+		const bool bShouldBeginOverlap, 
+		const bool bShouldEndOverlap,
+		const bool bShouldBeHidden = true
+	);
+
+	UFUNCTION()
+	void OnBoxBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor, 
+		UPrimitiveComponent* OtherComponent, 
+		int32 OtherBodyIndex, 
+		bool bFromSweep, 
+		const FHitResult& SweepResult
+	);
+
+	UFUNCTION()
+	void OnBoxEndOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComponent,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
 };

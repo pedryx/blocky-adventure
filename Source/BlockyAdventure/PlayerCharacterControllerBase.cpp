@@ -356,6 +356,7 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 	CurrentTrace.GameWorld->GetBlock(BlockPosition) = BlockTypeID;
 	TObjectPtr<AChunk> Chunk{ CurrentTrace.GameWorld->GetChunk(BlockPosition) };
 	Chunk->CreateMesh();
+	Chunk->CookMesh(false);
 
 	if (BlockTypeID == FBlockType::AIR_ID)
 	{
@@ -379,6 +380,7 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 			if (NeighborChunk != Chunk)
 			{
 				NeighborChunk->CreateMesh();
+				NeighborChunk->CookMesh(false);
 			}
 		}
 	}

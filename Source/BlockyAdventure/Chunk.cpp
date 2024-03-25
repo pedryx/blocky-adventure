@@ -11,12 +11,12 @@ AChunk::AChunk()
 
 	MeshComponent = CreateDefaultSubobject<UProceduralMeshComponent>("Mesh");
 	SetRootComponent(MeshComponent);
+
+	Blocks.Init(FBlockType::AIR_ID, SIZE * SIZE * HEIGHT);
 }
 
 void AChunk::Generate()
 {
-	Blocks.Init(FBlockType::AIR_ID, SIZE * SIZE * HEIGHT);
-
 	for (int32 X = Position.X; X < Position.X + SIZE; ++X)
 	{
 		for (int32 Y = Position.Y; Y < Position.Y + SIZE; ++Y)
@@ -64,9 +64,13 @@ void AChunk::CreateMesh()
 			}
 		}
 	}
+}
 
+void AChunk::CookMesh(const bool bUseAsyncCooking)
+{
 	checkf(IsValid(GetGameWorld()->Material), TEXT("Material was not specified."));
 	MeshComponent->SetMaterial(0, GetGameWorld()->Material);
+	MeshComponent->bUseAsyncCooking = bUseAsyncCooking;
 	MeshComponent->CreateMeshSection(
 		0,
 		MeshVertices,

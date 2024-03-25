@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "BlockType.h"
+#include "Async/Async.h"
+#include "Async/Future.h"
 #include "GameWorld.generated.h"
 
 class ASector;
@@ -72,14 +74,17 @@ public:
 	/**
 	 * Spawn a sector which contains a block at specified position.
 	 */
-	void SpawnSector(const FIntVector& BlockPosition);
+	void SpawnSector(const FIntVector& BlockPosition, const bool bShouldIgnoreFirstOverlap = true);
 
 	/**
 	 * Despawn a sector which contains a block at specified position.
 	 */
 	void DespawnSector(const FIntVector& BlockPosition);
+
+	TObjectPtr<ASector> GetLastSpawnedSector() { return LastSpawnedSector; }
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 
 private:
 	/**
@@ -88,7 +93,23 @@ private:
 	TArray<TObjectPtr<ASector>> Sectors;
 
 	/**
+	 * Sectors which are in queue in order to cook up their mesh.
+	 */
+	TQueue<TObjectPtr<ASector>> SectorsToProcess;
+
+	/**
+	 * Sectors to be despawned.
+	 */
+	TQueue<TObjectPtr<ASector>> SectorsToDespawn;
+
+	/**
 	 * Convert position of a block to a position of a sector.
 	 */
 	FIntVector ConvertBlockPositionToSectorPosition(const FIntVector& BlockPosition) const;
+	TObjectPtr<ASector> LastSpawnedSector{};
+
+	/**
+	 * Determine if game world contains a sector with specified position.
+	 */
+	bool DoContainsSector(const FIntVector& SectorPosition);
 };

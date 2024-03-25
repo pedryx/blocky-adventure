@@ -68,6 +68,11 @@ public:
 	void CreateMesh();
 
 	/**
+	 * Cook created mesh for the chunk.
+	 */
+	void CookMesh(const bool bUseAsyncCooking);
+
+	/**
 	 * Get a game world which owns sector which owns this chunk.
 	 */
 	TObjectPtr<AGameWorld> GetGameWorld();
