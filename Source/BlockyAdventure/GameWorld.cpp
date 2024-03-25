@@ -136,3 +136,29 @@ void AGameWorld::SpawnSector(const FIntVector& BlockPosition)
 	Sector->Generate();
 	Sector->CreateMesh();
 }
+
+void AGameWorld::DespawnSector(const FIntVector& BlockPosition)
+{
+	const FIntVector SectorPosition{ ConvertBlockPositionToSectorPosition(BlockPosition) };
+	TObjectPtr<ASector> Sector{};
+
+	for (TObjectPtr<ASector> CurrentSector : Sectors)
+	{
+		if (CurrentSector->GetPosition() == SectorPosition)
+		{
+			Sector = CurrentSector;
+		}
+	}
+	checkf(IsValid(Sector), TEXT("Sector is not spawned."));
+
+	Sectors.RemoveSwap(Sector);
+
+	TArray<TObjectPtr<AActor>> AttachedActors;
+	Sector->GetAttachedActors(AttachedActors, true, false);
+
+	for (TObjectPtr<AActor> Actor : AttachedActors)
+	{
+		Actor->Destroy();
+	}
+	Sector->Destroy();
+}

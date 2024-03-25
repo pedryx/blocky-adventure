@@ -267,6 +267,18 @@ void APlayerCharacterControllerBase::HandleChangeSlot(const FInputActionValue& I
 void APlayerCharacterControllerBase::HandleDebug(const FInputActionValue& InputActionValue)
 {
 	UE_LOG(LogTemp, Warning, TEXT("DEBUG!"));
+
+	if (CurrentTrace.GameWorld != nullptr)
+	{
+		static bool bSpawned{ true };
+
+		if (bSpawned)
+			CurrentTrace.GameWorld->DespawnSector(FIntVector{ -1, 0, 0 });
+		else
+			CurrentTrace.GameWorld->SpawnSector(FIntVector{ -1, 0, 0 });
+
+		bSpawned = !bSpawned;
+	}
 }
 
 void APlayerCharacterControllerBase::UpdateCurrentTrace()

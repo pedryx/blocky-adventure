@@ -69,6 +69,15 @@ public:
 	 */
 	FIntVector GetBlockPosition(const FVector& WorldPosition) const;
 
+	/**
+	 * Spawn a sector which contains a block at specified position.
+	 */
+	void SpawnSector(const FIntVector& BlockPosition);
+
+	/**
+	 * Despawn a sector which contains a block at specified position.
+	 */
+	void DespawnSector(const FIntVector& BlockPosition);
 protected:
 	virtual void BeginPlay() override;
 
@@ -82,9 +91,4 @@ private:
 	 * Convert position of a block to a position of a sector.
 	 */
 	FIntVector ConvertBlockPositionToSectorPosition(const FIntVector& BlockPosition) const;
-
-	/**
-	 * Spawn a sector for a specified block position.
-	 */
-	void SpawnSector(const FIntVector& BlockPosition);
 };
