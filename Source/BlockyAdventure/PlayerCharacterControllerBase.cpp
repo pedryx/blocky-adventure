@@ -11,6 +11,11 @@
 #include "Components/CapsuleComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
+APlayerCharacterControllerBase::APlayerCharacterControllerBase()
+{
+	PrimaryActorTick.bCanEverTick = true;
+}
+
 void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -18,6 +23,53 @@ void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 	PlayerCharacter = Cast<ACharacter>(InPawn);
 	checkf(IsValid(PlayerCharacter), TEXT("PlayerCharacterController shpuld only posses ACharacter."));
 
+	InitializeInput();
+
+	checkf(IsValid(WireframeClass), TEXT("WireframeClass was not specified."));
+	WireframeActor = GetWorld()->SpawnActor(WireframeClass);
+	WireframeActor->SetActorHiddenInGame(true);
+
+	checkf(IsValid(DestructingBlockClass), TEXT("DestructingBlockClass was not specified."));
+	DestructingBlockActor = GetWorld()->SpawnActor(DestructingBlockClass);
+	DestructingBlockActor->SetActorHiddenInGame(true);
+
+	DestructionMaterial = UMaterialInstanceDynamic::Create(
+		DestructingBlockActor->GetComponentByClass<UStaticMeshComponent>()->GetMaterial(0),
+		nullptr
+	);
+	checkf(IsValid(DestructionMaterial), TEXT("Unable to create dynamic material instance."));
+	DestructingBlockActor->GetComponentByClass<UStaticMeshComponent>()->SetMaterial(0, DestructionMaterial);
+}
+
+void APlayerCharacterControllerBase::OnUnPossess()
+{
+	Super::OnUnPossess();
+
+	InputComponent->ClearActionBindings();
+}
+
+void APlayerCharacterControllerBase::Tick(float DeltaSeconds)
+{
+	UpdateCurrentTrace();
+	UpdateWireframePosition();
+
+	if (bDestructionButtonDown)
+	{
+		if (CurrentTrace.bIsSuccess && CurrentTrace.BlockPosition != BlockBeingDestructedPosition)
+		{
+			StartBlockDestruction();
+		}
+		else if (!CurrentTrace.bIsSuccess)
+		{
+			StopBlockDestruction();
+		}
+	}
+
+	ProgressBlockDestruction(DeltaSeconds);
+}
+
+void APlayerCharacterControllerBase::InitializeInput()
+{
 	EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
 	checkf(IsValid(EnhancedInputComponent), TEXT("Unable to get reference to the UEnhancedInputComponent."));
 
@@ -28,9 +80,7 @@ void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 	InputSubsystem->ClearAllMappings();
 	InputSubsystem->AddMappingContext(InputMappingContext, 0);
 
-	WireframeActor = GetWorld()->SpawnActor(WireframeClass);
-	WireframeActor->SetActorHiddenInGame(true);
-
+	#pragma region Bind Input Actions
 	checkf(IsValid(ActionMove), TEXT("ActionMove was not specified."));
 	EnhancedInputComponent->BindAction(
 		ActionMove,
@@ -110,13 +160,7 @@ void APlayerCharacterControllerBase::OnPossess(APawn* InPawn)
 		this,
 		&APlayerCharacterControllerBase::HandleChangeSlot
 	);
-}
-
-void APlayerCharacterControllerBase::OnUnPossess()
-{
-	Super::OnUnPossess();
-
-	InputComponent->ClearActionBindings();
+	#pragma endregion
 }
 
 void APlayerCharacterControllerBase::HandleMove(const FInputActionValue& InputActionValue)
@@ -152,8 +196,6 @@ void APlayerCharacterControllerBase::HandleLook(const FInputActionValue& InputAc
 
 	AddYawInput(LookDirection.X);
 	AddPitchInput(-LookDirection.Y);
-	
-	UpdateWireframePosition();
 }
 
 void APlayerCharacterControllerBase::HandleJump(const FInputActionValue& InputActionValue)
@@ -172,8 +214,17 @@ void APlayerCharacterControllerBase::HandleDestroyBlock(const FInputActionValue&
 	{
 		return;
 	}
+	
+	bDestructionButtonDown = InputActionValue.Get<bool>();
 
-	TrySetLineTracedBlock(FBlockType::AIR_ID);
+	if (bDestructionButtonDown)
+	{
+		StartBlockDestruction();
+	}
+	else
+	{
+		StopBlockDestruction();
+	}
 }
 
 void APlayerCharacterControllerBase::HandlePlaceBlock(const FInputActionValue& InputActionValue)
@@ -201,9 +252,11 @@ void APlayerCharacterControllerBase::HandleChangeSlot(const FInputActionValue& I
 	const float Value{ InputActionValue.Get<float>() };
 	SelectedBlockID = static_cast<BlockTypeID>(Value) - 1;
 	UpdateWireframePosition();
+
+	UE_LOG(LogTemp, Warning, TEXT("Select block with ID %d"), SelectedBlockID);
 }
 
-bool APlayerCharacterControllerBase::TryLineTraceFromPlayer(FHitResult& OutHitResult) const
+void APlayerCharacterControllerBase::UpdateCurrentTrace()
 {
 	FVector CameraLocation;
 	FRotator CameraRotator;
@@ -212,53 +265,61 @@ bool APlayerCharacterControllerBase::TryLineTraceFromPlayer(FHitResult& OutHitRe
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(PlayerCharacter);
 	Params.AddIgnoredActor(WireframeActor);
+	Params.AddIgnoredActor(DestructingBlockActor);
 
+	FHitResult HitResult;
 	const FVector EndPoint{ CameraLocation + CameraRotator.Vector() * PlayerReach * AChunk::BLOCK_SIZE };
 
 	const bool bIsHit = GetWorld()->LineTraceSingleByChannel(
-		OutHitResult,
+		HitResult,
 		CameraLocation,
 		EndPoint,
 		ECollisionChannel::ECC_WorldStatic,
 		Params
 	);
 
-	return bIsHit;
-}
-
-
-void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID BlockTypeID) const
-{
-	FHitResult HitResult;
-	const bool bIsHit{ TryLineTraceFromPlayer(HitResult) };
-
 	if (!bIsHit)
 	{
+		CurrentTrace = FLineTraceResults::Fail();
 		return;
 	}
 
-	const TObjectPtr<AGameWorld> GameWorld = Cast<AChunk>(HitResult.GetActor())->GetGameWorld();
+	const TObjectPtr<AChunk> Chunk{ Cast<AChunk>(HitResult.GetActor()) };
+	checkf(IsValid(Chunk), TEXT("Can cast only chunk actors."));
 
-	// We need to offset impact point by some threshold, because we need to get a position within a block.
-	const float Offset{ BlockTypeID == FBlockType::AIR_ID ? -1.0f : 1.0f };
-	const FIntVector BlockPosition
-	{
-		GameWorld->GetBlockPosition(HitResult.ImpactPoint + HitResult.ImpactNormal * Offset)
-	};
+	const TObjectPtr<AGameWorld> GameWorld{ Chunk->GetGameWorld() };
+	const FIntVector BlockPosition{ GameWorld->GetBlockPosition(HitResult.ImpactPoint - HitResult.ImpactNormal) };
 
 	if (!GameWorld->IsBlockInBounds(BlockPosition))
+	{
+		CurrentTrace = FLineTraceResults::Fail();
+		return;
+	}
+
+	CurrentTrace = FLineTraceResults{ true, BlockPosition, HitResult.ImpactNormal, GameWorld };
+}
+
+void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID BlockTypeID) const
+{
+	if (!CurrentTrace.bIsSuccess)
 	{
 		return;
 	}
 
 	// Block could be placed inside player.
-	if (BlockTypeID != FBlockType::AIR_ID && DoPlayerIntersect(BlockPosition))
+	if (BlockTypeID != FBlockType::AIR_ID && DoPlayerIntersect(CurrentTrace.BlockPosition))
 	{
 		return;
 	}
 
-	GameWorld->GetBlock(BlockPosition) = BlockTypeID;
-	TObjectPtr<AChunk> Chunk{ GameWorld->GetChunk(BlockPosition) };
+	FIntVector BlockPosition{ CurrentTrace.BlockPosition  };
+	if (BlockTypeID != FBlockType::AIR_ID)
+	{
+		BlockPosition += static_cast<FIntVector>(CurrentTrace.Normal);
+	}
+
+	CurrentTrace.GameWorld->GetBlock(BlockPosition) = BlockTypeID;
+	TObjectPtr<AChunk> Chunk{ CurrentTrace.GameWorld->GetChunk(BlockPosition) };
 	Chunk->CreateMesh();
 
 	if (BlockTypeID == FBlockType::AIR_ID)
@@ -274,12 +335,12 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 		for (const FIntVector& Direction : Directions)
 		{
 			FIntVector NeighborBlockPosition{ BlockPosition + Direction };
-			if (!GameWorld->IsBlockInBounds(NeighborBlockPosition))
+			if (!CurrentTrace.GameWorld->IsBlockInBounds(NeighborBlockPosition))
 			{
 				continue;
 			}
 
-			TObjectPtr<AChunk> NeighborChunk{ GameWorld->GetChunk(NeighborBlockPosition) };
+			TObjectPtr<AChunk> NeighborChunk{ CurrentTrace.GameWorld->GetChunk(NeighborBlockPosition) };
 			if (NeighborChunk != Chunk)
 			{
 				NeighborChunk->CreateMesh();
@@ -292,19 +353,15 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 
 void APlayerCharacterControllerBase::UpdateWireframePosition() const
 {
-	FHitResult HitResult;
-	const bool bIsHit{ TryLineTraceFromPlayer(HitResult) };
+	const FIntVector BlockPosition{ CurrentTrace.BlockPosition + static_cast<FIntVector>(CurrentTrace.Normal) };
 
-	if (!bIsHit || SelectedBlockID == FBlockType::AIR_ID)
+	bool bShouldHideWireframe
 	{
-		WireframeActor->SetActorHiddenInGame(true);
-		return;
-	}
-
-	const TObjectPtr<AGameWorld> GameWorld = Cast<AChunk>(HitResult.GetActor())->GetGameWorld();
-	const FIntVector BlockPosition{ GameWorld->GetBlockPosition(HitResult.ImpactPoint + HitResult.ImpactNormal) };
-
-	if (DoPlayerIntersect(BlockPosition))
+		!CurrentTrace.bIsSuccess 
+			|| SelectedBlockID == FBlockType::AIR_ID
+			|| DoPlayerIntersect(BlockPosition)
+	};
+	if (bShouldHideWireframe)
 	{
 		WireframeActor->SetActorHiddenInGame(true);
 		return;
@@ -329,4 +386,64 @@ bool APlayerCharacterControllerBase::DoPlayerIntersect(const FIntVector& BlockPo
 	const FBox BlockBox{ MinPoint * AChunk::BLOCK_SIZE, MaxPoint * AChunk::BLOCK_SIZE };
 
 	return PlayerCharacter->GetCapsuleComponent()->Bounds.GetBox().Intersect(BlockBox);
+}
+
+void APlayerCharacterControllerBase::StartBlockDestruction()
+{
+	if (!CurrentTrace.bIsSuccess)
+	{
+		return;
+	}
+
+	BlockBeingDestructedPosition = CurrentTrace.BlockPosition;
+	bDestructionActive = true;
+	DestructionAccumulator = 0.0f;
+
+	const FVector NewDestructingBlockPosition
+	{
+		static_cast<FVector>(CurrentTrace.BlockPosition) * AChunk::BLOCK_SIZE
+			+ FVector{ AChunk::BLOCK_SIZE, AChunk::BLOCK_SIZE, AChunk::BLOCK_SIZE } / 2
+	};
+
+	DestructingBlockActor->SetActorHiddenInGame(false);
+	FTransform Transform{ DestructingBlockActor->GetActorTransform() };
+	Transform.SetTranslation(NewDestructingBlockPosition);
+	DestructingBlockActor->SetActorTransform(Transform);
+
+	BlockBeingDestructedID = CurrentTrace.GameWorld->GetBlock(CurrentTrace.BlockPosition);
+
+	const FColor Color{ FBlockType::FromID(BlockBeingDestructedID).Color };
+	DestructionMaterial->SetVectorParameterValue(TEXT("Color"), Color.ReinterpretAsLinear());
+	DestructionMaterial->SetScalarParameterValue(TEXT("Progress"), 0.0f);
+}
+
+void APlayerCharacterControllerBase::StopBlockDestruction()
+{
+	bDestructionActive = false;
+	DestructingBlockActor->SetActorHiddenInGame(true);
+}
+
+void APlayerCharacterControllerBase::CompleteBlockDestruction()
+{
+	TrySetLineTracedBlock(FBlockType::AIR_ID);
+	StopBlockDestruction();
+}
+
+void APlayerCharacterControllerBase::ProgressBlockDestruction(const float DeltaSeconds)
+{
+	if (!bDestructionActive)
+	{
+		return;
+	}
+
+	DestructionAccumulator += DeltaSeconds;
+	const float Progress{ DestructionAccumulator / FBlockType::FromID(BlockBeingDestructedID).DestructionTime };
+
+	if (Progress >= 1.0f)
+	{
+		CompleteBlockDestruction();
+		return;
+	}
+
+	DestructionMaterial->SetScalarParameterValue(TEXT("Progress"), Progress);
 }

@@ -17,6 +17,10 @@ struct BLOCKYADVENTURE_API FBlockType
 	 */
 	const FColor Color;
 	/**
+	 * How long it takes to destroy the block in seconds.
+	 */
+	const float DestructionTime;
+	/**
 	 * Numerical identificator of the block.
 	 */
 	const BlockTypeID ID;
@@ -44,9 +48,9 @@ struct BLOCKYADVENTURE_API FBlockType
 	}
 
 private:
-	FBlockType(const FColor& Color)
+	FBlockType(const FColor& Color, const float DestructionTime)
 		// ID 0 is reserved for the air.
-		: Color{ Color }, ID{ static_cast<BlockTypeID>(BlockTypes.Num() + 1) }
+		: Color{ Color }, DestructionTime{ DestructionTime }, ID{ static_cast<BlockTypeID>(BlockTypes.Num() + 1) }
 	{
 		BlockTypes.Add(*this);
 	}
