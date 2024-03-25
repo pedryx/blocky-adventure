@@ -2,10 +2,15 @@
 #include "GameWorld.h"
 #include "Chunk.h"
 #include "BlockType.h"
+#include "Components/SceneComponent.h"
 
 ASector::ASector()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	TObjectPtr<USceneComponent> SceneComponent{ CreateDefaultSubobject<USceneComponent>(TEXT("Root")) };
+	checkf(IsValid(SceneComponent), TEXT("Unable to create scene component."));
+	SetRootComponent(SceneComponent);
 }
 
 void ASector::Generate()
@@ -29,7 +34,7 @@ void ASector::Generate()
 			TObjectPtr<AChunk> Chunk{ GetWorld()->SpawnActor<AChunk>(SpawnPosition, FRotator::ZeroRotator) };
 			checkf(IsValid(Chunk), TEXT("Unable to spawn chunk."));
 			Chunk->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
-			Chunk->Initialize(this, FIntVector{ X * AChunk::SIZE, Y * AChunk::SIZE, 0 });
+			Chunk->Initialize(this, FIntVector{ X * AChunk::SIZE, Y * AChunk::SIZE, 0 } + Position);
 
 			Chunks.Add(Chunk);
 			Chunk->Generate();

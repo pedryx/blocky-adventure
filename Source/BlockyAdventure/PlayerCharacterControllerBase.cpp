@@ -288,6 +288,7 @@ void APlayerCharacterControllerBase::UpdateCurrentTrace()
 	checkf(IsValid(Chunk), TEXT("Can cast only chunk actors."));
 
 	const TObjectPtr<AGameWorld> GameWorld{ Chunk->GetGameWorld() };
+
 	const FIntVector BlockPosition{ GameWorld->GetBlockPosition(HitResult.ImpactPoint - HitResult.ImpactNormal) };
 
 	if (!GameWorld->IsBlockInBounds(BlockPosition))
@@ -295,6 +296,15 @@ void APlayerCharacterControllerBase::UpdateCurrentTrace()
 		CurrentTrace = FLineTraceResults::Fail();
 		return;
 	}
+
+	// The block was destroyed and is set to air, but physics of the chunk is not yet updated.
+	if (BlockBeingDestructedPosition == BlockPosition &&  GameWorld->IsBlockAir(BlockPosition))
+	{
+		CurrentTrace = FLineTraceResults::Fail();
+		return;
+	}
+
+  	checkf(!GameWorld->IsBlockAir(BlockPosition), TEXT("Air cannot be line traced."));
 
 	CurrentTrace = FLineTraceResults{ true, BlockPosition, HitResult.ImpactNormal, GameWorld };
 }
