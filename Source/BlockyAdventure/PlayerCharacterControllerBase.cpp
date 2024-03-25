@@ -160,6 +160,14 @@ void APlayerCharacterControllerBase::InitializeInput()
 		this,
 		&APlayerCharacterControllerBase::HandleChangeSlot
 	);
+
+	checkf(IsValid(ActionDebug), TEXT("ActionDebug was not specified."));
+	EnhancedInputComponent->BindAction(
+		ActionDebug,
+		ETriggerEvent::Triggered,
+		this,
+		&APlayerCharacterControllerBase::HandleDebug
+	);
 	#pragma endregion
 }
 
@@ -254,6 +262,11 @@ void APlayerCharacterControllerBase::HandleChangeSlot(const FInputActionValue& I
 	UpdateWireframePosition();
 
 	UE_LOG(LogTemp, Warning, TEXT("Select block with ID %d"), SelectedBlockID);
+}
+
+void APlayerCharacterControllerBase::HandleDebug(const FInputActionValue& InputActionValue)
+{
+	UE_LOG(LogTemp, Warning, TEXT("DEBUG!"));
 }
 
 void APlayerCharacterControllerBase::UpdateCurrentTrace()

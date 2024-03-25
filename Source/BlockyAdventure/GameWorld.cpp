@@ -123,7 +123,6 @@ FIntVector AGameWorld::ConvertBlockPositionToSectorPosition(const FIntVector& Bl
 void AGameWorld::SpawnSector(const FIntVector& BlockPosition)
 {
 	const FIntVector SectorPosition{ ConvertBlockPositionToSectorPosition(BlockPosition) };
-	UE_LOG(LogTemp, Warning, TEXT("%d %d %d"), SectorPosition.X, SectorPosition.Y, SectorPosition.Z);
 
 	TObjectPtr<ASector> Sector = GetWorld()->SpawnActor<ASector>(
 		static_cast<FVector>(SectorPosition * AChunk::BLOCK_SIZE),
@@ -131,7 +130,6 @@ void AGameWorld::SpawnSector(const FIntVector& BlockPosition)
 	);
 	checkf(IsValid(Sector), TEXT("Unable to spawn sector."));
 	bool s = Sector->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
-	UE_LOG(LogTemp, Warning, TEXT("%d"), s);
 	Sector->Initialize(this, SectorPosition);
 
 	Sectors.Add(Sector);

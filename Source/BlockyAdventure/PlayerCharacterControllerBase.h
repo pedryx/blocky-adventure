@@ -50,6 +50,9 @@ public:
 	TObjectPtr<UInputAction> ActionSelectSlot5;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input Actions")
+	TObjectPtr<UInputAction> ActionDebug;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input Actions")
 	TObjectPtr<UInputMappingContext> InputMappingContext{};
 
 	UPROPERTY(EditAnywhere, Category = "Input Parameters")
@@ -118,6 +121,7 @@ private:
 	void HandleDestroyBlock(const FInputActionValue& InputActionValue);
 	void HandlePlaceBlock(const FInputActionValue& InputActionValue);
 	void HandleChangeSlot(const FInputActionValue& InputActionValue);
+	void HandleDebug(const FInputActionValue& InputActionValue);
 	#pragma endregion
 
 	/**
