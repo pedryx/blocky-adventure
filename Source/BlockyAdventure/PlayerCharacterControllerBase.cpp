@@ -363,9 +363,13 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 	}
 
 	CurrentTrace.GameWorld->GetBlock(BlockPosition) = BlockTypeID;
+
 	AChunk* const Chunk{ CurrentTrace.GameWorld->GetChunk(BlockPosition) };
 	Chunk->CreateMesh();
 	Chunk->CookMesh(false);
+
+	const ASector* const Sector{ Chunk->GetSector() };
+	Sector->SaveToFile();
 
 	if (BlockTypeID == FBlockType::AIR_ID)
 	{
