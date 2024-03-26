@@ -73,7 +73,8 @@ void APlayerCharacterControllerBase::InitializeInput()
 	EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
 	checkf(IsValid(EnhancedInputComponent), TEXT("Unable to get reference to the UEnhancedInputComponent."));
 
-	auto* InputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+	UEnhancedInputLocalPlayerSubsystem* InputSubsystem
+		= ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 	checkf(IsValid(InputSubsystem), TEXT("Unable to get reference to the UEnhancedInputLocalPlayerSubsystem."));
 
 	checkf(InputMappingContext, TEXT("InputMappingContext was not specified."));
@@ -237,12 +238,7 @@ void APlayerCharacterControllerBase::HandleDestroyBlock(const FInputActionValue&
 
 void APlayerCharacterControllerBase::HandlePlaceBlock(const FInputActionValue& InputActionValue)
 {
-	if (!PlayerCharacter)
-	{
-		return;
-	}
-
-	if (SelectedBlockID == FBlockType::AIR_ID)
+	if (!PlayerCharacter || SelectedBlockID == FBlockType::AIR_ID)
 	{
 		return;
 	}
@@ -261,26 +257,26 @@ void APlayerCharacterControllerBase::HandleChangeSlot(const FInputActionValue& I
 	SelectedBlockID = static_cast<BlockTypeID>(Value) - 1;
 	UpdateWireframePosition();
 
-	UE_LOG(LogTemp, Warning, TEXT("Select block with ID %d"), SelectedBlockID);
+	UE_LOG(LogTemp, Display, TEXT("Select block with ID %d"), SelectedBlockID);
 }
 
 void APlayerCharacterControllerBase::HandleDebug(const FInputActionValue& InputActionValue)
 {
-	UE_LOG(LogTemp, Warning, TEXT("DEBUG!"));
+	UE_LOG(LogTemp, Warning, TEXT("Debug button pressed!"));
 
 	if (CurrentTrace.GameWorld != nullptr)
 	{
 		static bool bShouldSave{ true };
-		TObjectPtr<ASector> Sector{ CurrentTrace.GameWorld->GetSector(CurrentTrace.BlockPosition) };
+		ASector* Sector{ CurrentTrace.GameWorld->GetSector(CurrentTrace.BlockPosition) };
 
 		if (bShouldSave)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Saving..."));
+			UE_LOG(LogTemp, Warning, TEXT("Saving sector..."));
 			Sector->SaveToFile();
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Loading..."));
+			UE_LOG(LogTemp, Warning, TEXT("Loading sector..."));
 			Sector->LoadFromFile();
 
 			Sector->CreateMesh();
@@ -319,10 +315,10 @@ void APlayerCharacterControllerBase::UpdateCurrentTrace()
 		return;
 	}
 
-	const TObjectPtr<AChunk> Chunk{ Cast<AChunk>(HitResult.GetActor()) };
-	checkf(IsValid(Chunk), TEXT("Can cast only chunk actors."));
+	AChunk* const Chunk{ Cast<AChunk>(HitResult.GetActor()) };
+	checkf(IsValid(Chunk), TEXT("Can line cast only chunk actors."));
 
-	const TObjectPtr<AGameWorld> GameWorld{ Chunk->GetGameWorld() };
+	AGameWorld* const GameWorld{ Chunk->GetGameWorld() };
 
 	const FIntVector BlockPosition{ GameWorld->GetBlockPosition(HitResult.ImpactPoint - HitResult.ImpactNormal) };
 
@@ -339,8 +335,11 @@ void APlayerCharacterControllerBase::UpdateCurrentTrace()
 		return;
 	}
 
-  	checkf(!GameWorld->IsBlockAir(BlockPosition), TEXT("Air cannot be line traced."));
-
+	ensureAlwaysMsgf(
+		!GameWorld->IsBlockAir(BlockPosition), 
+		TEXT("Current trace traced air block at position %s"), 
+		*BlockPosition.ToString()
+	);
 	CurrentTrace = FLineTraceResults{ true, BlockPosition, HitResult.ImpactNormal, GameWorld };
 }
 
@@ -364,14 +363,14 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 	}
 
 	CurrentTrace.GameWorld->GetBlock(BlockPosition) = BlockTypeID;
-	TObjectPtr<AChunk> Chunk{ CurrentTrace.GameWorld->GetChunk(BlockPosition) };
+	AChunk* const Chunk{ CurrentTrace.GameWorld->GetChunk(BlockPosition) };
 	Chunk->CreateMesh();
 	Chunk->CookMesh(false);
 
 	if (BlockTypeID == FBlockType::AIR_ID)
 	{
 		// Removed block could be at the edge of the chunk, so neighbor blocks can have missing face.
-		TArray<FIntVector> Directions
+		const TArray<FIntVector> Directions
 		{
 			FIntVector{  1,  0, 0 },
 			FIntVector{  0,  1, 0 },
@@ -380,13 +379,13 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 		};
 		for (const FIntVector& Direction : Directions)
 		{
-			FIntVector NeighborBlockPosition{ BlockPosition + Direction };
+			const FIntVector NeighborBlockPosition{ BlockPosition + Direction };
 			if (!CurrentTrace.GameWorld->IsBlockInBounds(NeighborBlockPosition))
 			{
 				continue;
 			}
 
-			TObjectPtr<AChunk> NeighborChunk{ CurrentTrace.GameWorld->GetChunk(NeighborBlockPosition) };
+			AChunk* const NeighborChunk{ CurrentTrace.GameWorld->GetChunk(NeighborBlockPosition) };
 			if (NeighborChunk != Chunk)
 			{
 				NeighborChunk->CreateMesh();

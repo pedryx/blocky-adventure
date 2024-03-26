@@ -51,7 +51,13 @@ public:
 	 */
 	inline static constexpr int32 TOTAL_SIZE{ SIZE * BLOCK_SIZE };
 
-	void Initialize(const TObjectPtr<ASector> InSector, const FIntVector& InPosition)
+	/**
+	 * Initialize this chunk.
+	 * 
+	 * \param InSector Sector to which this chunk belongs.
+	 * \param InPosition Block position of the lower left back block of this chunk.
+	 */
+	void Initialize(ASector* const InSector, const FIntVector& InPosition)
 	{
 		Sector = InSector;
 		Position = InPosition;
@@ -101,6 +107,7 @@ private:
 	/**
 	 * Mesh for blocks which belongs to this chunk.
 	 */
+	UPROPERTY()
 	TObjectPtr<UProceduralMeshComponent> MeshComponent;
 	TArray<FVector> MeshVertices;
 	TArray<int32> MeshIndices;
@@ -115,6 +122,7 @@ private:
 	/**
 	 * Represent a sector to which this chunk belongs.
 	 */
+	UPROPERTY()
 	TObjectPtr<ASector> Sector;
 	/**
 	 * Position of the left-back-down corner of the chunk.

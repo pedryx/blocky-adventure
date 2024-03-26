@@ -3,13 +3,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "BlockType.h"
-#include "Async/Async.h"
-#include "Async/Future.h"
 #include "GameWorld.generated.h"
 
 class ASector;
 class AChunk;
 struct FOctave;
+template<typename ItemType, EQueueMode Mode>
+class TQueue;
 
 /**
  * Represent a game world. Game world is composed out of sectors. Each sector could be loaded or unloaded during
@@ -27,7 +27,7 @@ public:
 	 * Material used for blocks.
 	 */
 	UPROPERTY(EditAnywhere, Category = "Game World")
-	TObjectPtr<UMaterialInterface> Material;
+	UMaterialInterface* Material;
 
 	/**
 	 * Octaves used for generating height map.
@@ -38,12 +38,12 @@ public:
 	/**
 	 * Get a sector of a specified block position. Block position must be in the bounds of any loaded sector.
 	 */
-	TObjectPtr<ASector> GetSector(const FIntVector& BlockPosition);
+	ASector* GetSector(const FIntVector& BlockPosition);
 
 	/**
 	 * Get a chunk of a specified block position. Block position must be in the bounds of any loaded sector.
 	 */
-	TObjectPtr<AChunk> GetChunk(const FIntVector& BlockPosition);
+	AChunk* GetChunk(const FIntVector& BlockPosition);
 
 	/**
 	 * Get a reference to a block at specified position. Specified position must be in the bounds of any loaded sector.
@@ -81,7 +81,6 @@ public:
 	 */
 	void DespawnSector(const FIntVector& BlockPosition);
 
-	TObjectPtr<ASector> GetLastSpawnedSector() { return LastSpawnedSector; }
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -90,23 +89,23 @@ private:
 	/**
 	 * Contains currently loaded sectors.
 	 */
+	UPROPERTY()
 	TArray<TObjectPtr<ASector>> Sectors;
 
 	/**
 	 * Sectors which are in queue in order to cook up their mesh.
 	 */
-	TQueue<TObjectPtr<ASector>> SectorsToProcess;
+	TQueue<ASector*> SectorsToProcess;
 
 	/**
 	 * Sectors to be despawned.
 	 */
-	TQueue<TObjectPtr<ASector>> SectorsToDespawn;
+	TQueue<ASector*> SectorsToDespawn;
 
 	/**
 	 * Convert position of a block to a position of a sector.
 	 */
 	FIntVector ConvertBlockPositionToSectorPosition(const FIntVector& BlockPosition) const;
-	TObjectPtr<ASector> LastSpawnedSector{};
 
 	/**
 	 * Determine if game world contains a sector with specified position.

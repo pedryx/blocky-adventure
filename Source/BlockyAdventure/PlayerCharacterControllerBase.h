@@ -74,23 +74,27 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 
 private:
+	UPROPERTY()
 	TObjectPtr<ACharacter> PlayerCharacter{};
+	UPROPERTY()
 	TObjectPtr<UEnhancedInputComponent> EnhancedInputComponent{};
 
 	/**
 	 * ID of a block which is currently selected for placement.
 	 */
 	BlockTypeID SelectedBlockID{ 1 };
+	UPROPERTY()
 	TObjectPtr<AActor> WireframeActor{};
 	
 	/**
 	 * Actor which will be spawned atop of block which is currently being destroyd.
 	 */
+	UPROPERTY()
 	TObjectPtr<AActor> DestructingBlockActor{};
 	/**
 	 * Dynamic material instance of destructing actor.
 	 */
-	TObjectPtr<UMaterialInstanceDynamic> DestructionMaterial{};
+	UMaterialInstanceDynamic* DestructionMaterial{};
 	/**
 	 * Determine if button for block destruction is being held down.
 	 */
@@ -144,6 +148,7 @@ private:
 		/**
 		 * GameWorld to which hitted block belongs. If no block was hitted then nullptr.
 		 */
+		UPROPERTY()
 		TObjectPtr<AGameWorld> GameWorld;
 
 		/**

@@ -20,7 +20,7 @@ ASector::ASector()
 }
 
 void ASector::Initialize(
-	const TObjectPtr<AGameWorld> InGameWorld, 
+	AGameWorld* const InGameWorld, 
 	const FIntVector& InPosition,
 	const bool bInShouldIgnoreFirstOverlap
 )
@@ -59,7 +59,7 @@ void ASector::CookMesh(const bool bUseAsyncCooking)
 	bIsReady = true;
 }
 
-TObjectPtr<AChunk> ASector::GetChunk(const FIntVector& BlockPosition)
+AChunk* ASector::GetChunk(const FIntVector& BlockPosition)
 {
  	checkf(IsBlockInBounds(BlockPosition), TEXT("Block is outside this chunk bounds."));
 
@@ -71,7 +71,7 @@ TObjectPtr<AChunk> ASector::GetChunk(const FIntVector& BlockPosition)
 
 BlockTypeID& ASector::GetBlock(const FIntVector& BlockPosition)
 {
-	TObjectPtr<AChunk> Chunk{ GetChunk(BlockPosition) };
+	AChunk* const Chunk{ GetChunk(BlockPosition) };
 
 	return Chunk->GetBlock(BlockPosition);
 }
@@ -102,11 +102,16 @@ void ASector::SaveToFile() const
 {
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	IFileHandle* FileHandle = PlatformFile.OpenWrite(*FileName);
-	checkf(FileHandle, TEXT("Cannow write to the file."));
+
+	if (!FileHandle)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Cannot write to the sector file %s."), *FileName);
+		return;
+	}
 
 	constexpr int32 CHUNK_SIZE{ AChunk::SIZE * AChunk::SIZE * AChunk::HEIGHT };
 
-	for (TObjectPtr<AChunk> Chunk : Chunks)
+	for (const TObjectPtr<AChunk> Chunk : Chunks)
 	{
 		FileHandle->Write(Chunk->GetBlockData(), CHUNK_SIZE);
 	}
@@ -117,7 +122,12 @@ void ASector::LoadFromFile()
 {
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	IFileHandle* FileHandle = PlatformFile.OpenRead(*FileName);
-	checkf(FileHandle, TEXT("Cannow read from the file."));
+
+	if (!FileHandle)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Cannot read from the sector file %s."), *FileName);
+		return;
+	}
 
 	constexpr int32 CHUNK_SIZE{ AChunk::SIZE * AChunk::SIZE * AChunk::HEIGHT };
 
@@ -142,7 +152,7 @@ void ASector::CreateChunks()
 				0.0
 			};
 
-			TObjectPtr<AChunk> Chunk{ GetWorld()->SpawnActor<AChunk>(SpawnPosition, FRotator::ZeroRotator) };
+			AChunk* Chunk{ GetWorld()->SpawnActor<AChunk>(SpawnPosition, FRotator::ZeroRotator) };
 			checkf(IsValid(Chunk), TEXT("Unable to spawn chunk."));
 			Chunk->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 			Chunk->Initialize(this, FIntVector{ X * AChunk::SIZE, Y * AChunk::SIZE, 0 } + Position);
@@ -259,7 +269,12 @@ void ASector::OnBoxBeginOverlap(
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Trigger! %d begin"), Position.X);
+	UE_LOG(
+		LogTemp, 
+		Display, 
+		TEXT("Overlap begins with a spawn sector trigger in sector at %s."), 
+		*Position.ToString()
+	);
 
 	constexpr int32 SECTOR_SIZE{ SIZE * AChunk::SIZE };
 	FIntVector SectorPosition{ Position };
@@ -282,7 +297,8 @@ void ASector::OnBoxBeginOverlap(
 	}
 	else
 	{
-		checkf(false, TEXT("Overlap with invalid object."));
+		ensureAlwaysMsgf(false, TEXT("Overlap with invalid object."));
+		return;
 	}
 
 	GameWorld->SpawnSector(SectorPosition);
@@ -302,7 +318,12 @@ void ASector::OnBoxEndOverlap(
 		bShouldIgnoreFirstOverlap = false;
 		return;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Trigger! %d end"), Position.X);
+	UE_LOG(
+		LogTemp, 
+		Warning, 
+		TEXT("Overlap ends with a despawn sector trigger in sector at %s."), 
+		*Position.ToString()
+	);
 
 	GameWorld->DespawnSector(Position);
 }

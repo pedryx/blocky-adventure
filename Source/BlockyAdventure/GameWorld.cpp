@@ -5,18 +5,18 @@
 
 #include "Components/SceneComponent.h"
 #include "Async/Async.h"
-#include "Async/Future.h"
+#include "Containers/Queue.h"
 
 AGameWorld::AGameWorld()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	TObjectPtr<USceneComponent> SceneComponent{ CreateDefaultSubobject<USceneComponent>(TEXT("Root")) };
+	USceneComponent* SceneComponent{ CreateDefaultSubobject<USceneComponent>(TEXT("Root")) };
 	checkf(IsValid(SceneComponent), TEXT("Unable to create scene component."));
 	SetRootComponent(SceneComponent);
 }
 
-TObjectPtr<ASector> AGameWorld::GetSector(const FIntVector& BlockPosition)
+ASector* AGameWorld::GetSector(const FIntVector& BlockPosition)
 {
 	const FIntVector SectorPosition{ ConvertBlockPositionToSectorPosition(BlockPosition) };
 
@@ -28,20 +28,20 @@ TObjectPtr<ASector> AGameWorld::GetSector(const FIntVector& BlockPosition)
 		}
 	}
 
-	ensureMsgf(false, TEXT("Block is not in bounds of any loaded sector."));
+	checkf(false, TEXT("Block is not in bounds of any loaded sector."));
 	return nullptr;
 }
 
-TObjectPtr<AChunk> AGameWorld::GetChunk(const FIntVector& BlockPosition)
+AChunk* AGameWorld::GetChunk(const FIntVector& BlockPosition)
 {
-	const TObjectPtr<ASector> Sector{ GetSector(BlockPosition) };
+	ASector* const Sector{ GetSector(BlockPosition) };
 	
 	return Sector->GetChunk(BlockPosition);
 }
 
 BlockTypeID& AGameWorld::GetBlock(const FIntVector& BlockPosition)
 {
-	TObjectPtr<AChunk> Chunk{ GetChunk(BlockPosition) };
+	AChunk* const Chunk{ GetChunk(BlockPosition) };
 
 	return Chunk->GetBlock(BlockPosition);
 }
@@ -110,13 +110,13 @@ void AGameWorld::BeginPlay()
 
 void AGameWorld::Tick(float DeltaSeconds)
 {
-	TObjectPtr<ASector> SectorToProcess{};
+	ASector* SectorToProcess{};
 	if (SectorsToProcess.Dequeue(SectorToProcess))
 	{
 		SectorToProcess->CookMesh(true);
 	}
 
-	TObjectPtr<ASector> SectorToDespawn{};
+	ASector* SectorToDespawn{};
 	if (SectorsToDespawn.Peek(SectorToDespawn) && SectorToDespawn->IsReady())
 	{
 		SectorsToDespawn.Dequeue(SectorToDespawn);
@@ -147,13 +147,12 @@ void AGameWorld::SpawnSector(const FIntVector& BlockPosition, const bool bShould
 		return;
 	}
 
-	TObjectPtr<ASector> Sector = GetWorld()->SpawnActor<ASector>(
+	ASector* const Sector = GetWorld()->SpawnActor<ASector>(
 		static_cast<FVector>(SectorPosition * AChunk::BLOCK_SIZE),
 		FRotator::ZeroRotator
 	);
 	checkf(IsValid(Sector), TEXT("Unable to spawn sector."));
 	Sectors.Add(Sector);
-	LastSpawnedSector = Sector;
 
 	Sector->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	Sector->Initialize(this, SectorPosition, bShouldIgnoreFirstOverlap);
@@ -175,16 +174,16 @@ void AGameWorld::SpawnSector(const FIntVector& BlockPosition, const bool bShould
 void AGameWorld::DespawnSector(const FIntVector& BlockPosition)
 {
 	const FIntVector SectorPosition{ ConvertBlockPositionToSectorPosition(BlockPosition) };
-	TObjectPtr<ASector> Sector{};
+	ASector* Sector{};
 
-	for (TObjectPtr<ASector> CurrentSector : Sectors)
+	for (const TObjectPtr<ASector> CurrentSector : Sectors)
 	{
 		if (CurrentSector->GetPosition() == SectorPosition)
 		{
 			Sector = CurrentSector;
 		}
 	}
-	checkf(IsValid(Sector), TEXT("Sector is not spawned."));
+	checkf(IsValid(Sector), TEXT("Sector at position %s is not spawned."), *SectorPosition.ToString());
 
 	if (!Sector->IsReady())
 	{
@@ -194,10 +193,10 @@ void AGameWorld::DespawnSector(const FIntVector& BlockPosition)
 
 	Sectors.RemoveSwap(Sector);
 
-	TArray<TObjectPtr<AActor>> AttachedActors;
+	TArray<AActor*> AttachedActors;
 	Sector->GetAttachedActors(AttachedActors, true, false);
 
-	for (TObjectPtr<AActor> Actor : AttachedActors)
+	for (const TObjectPtr<AActor> Actor : AttachedActors)
 	{
 		Actor->Destroy();
 	}
