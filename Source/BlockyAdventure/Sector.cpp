@@ -54,7 +54,12 @@ void ASector::Generate()
 
 void ASector::CreateMesh()
 {
+	FDateTime StartTime = FDateTime::UtcNow();
+
 	ParallelFor(Chunks.Num(), [this](int32 Index) { Chunks[Index]->CreateMesh(); });
+
+	float TimeElapsedInMs = (FDateTime::UtcNow() - StartTime).GetTotalMilliseconds();
+	UE_LOG(LogTemp, Display, TEXT("Create Meshes in %fms"), TimeElapsedInMs);
 }
 
 void ASector::CookMesh(const bool bUseAsyncCooking)

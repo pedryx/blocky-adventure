@@ -4,6 +4,8 @@
 #include "Sector.h"
 
 #include "ProceduralMeshComponent.h"
+#include "Containers/BitArray.h"
+#include "HAL/UnrealMemory.h"
 
 AChunk::AChunk()
 {
@@ -21,6 +23,7 @@ void AChunk::Generate()
 	{
 		for (int32 Y = Position.Y; Y < Position.Y + SIZE; ++Y)
 		{
+			//const int32 Height{ 64 };
 			const int32 Height{ GetGameWorld()->ComputeHeight(FIntVector2{ X, Y }) };
 	
 			for (int32 Z = 0; Z <= Height; ++Z)
@@ -42,25 +45,6 @@ void AChunk::Generate()
 					GetBlock(FIntVector{ X, Y, Z }) = FBlockType::Dirt.ID;
 				}
 				GetBlock(FIntVector{ X, Y, Height }) = FBlockType::Grass.ID;
-			}
-		}
-	}
-}
-
-void AChunk::CreateMesh()
-{
-	MeshVertices.Empty();
-	MeshIndices.Empty();
-	MeshNormals.Empty();
-	MeshColors.Empty();
-
-	for (int32 X = Position.X; X < Position.X + SIZE; ++X)
-	{
-		for (int32 Y = Position.Y; Y < Position.Y + SIZE; ++Y)
-		{
-			for (int32 Z = Position.Z; Z < Position.Z + HEIGHT; ++Z)
-			{
-				CreateBlockMesh(FIntVector{ X, Y, Z });
 			}
 		}
 	}
@@ -92,9 +76,9 @@ BlockTypeID& AChunk::GetBlock(const FIntVector& BlockPosition)
 {
 	checkf(IsBlockInBounds(BlockPosition), TEXT("Block is not within position of this chunk."));
 
-	const FIntVector InChunkPosition{ BlockPosition - Position };
+	const int32 BlockIndex{ GetBlockIndex(BlockPosition) };
 
-	return Blocks[InChunkPosition.Z * SIZE * SIZE + InChunkPosition.Y * SIZE + InChunkPosition.X];
+	return Blocks[BlockIndex];
 }
 
 bool AChunk::IsBlockInBounds(const FIntVector& BlockPosition) const
@@ -117,65 +101,173 @@ bool AChunk::IsBlockInBounds(const FIntVector& BlockPosition) const
 	return bIsLargerThanBottomLeftBack && bIsSmallerThanTopRightFront;
 }
 
-void AChunk::CreateBlockMesh(const FIntVector& BlockPosition)
+void AChunk::CreateMesh()
 {
-	const BlockTypeID BlockTypeID = GetBlock(BlockPosition);
+	MeshVertices.Empty();
+	MeshIndices.Empty();
+	MeshNormals.Empty();
+	MeshColors.Empty();
 
-	if (BlockTypeID == FBlockType::AIR_ID)
+	FMemory::Memzero(ProcessedBlocks.GetData(), ProcessedBlocks.GetAllocatedSize());
+
+	for (int32 X = Position.X; X < Position.X + SIZE; ++X)
 	{
-		return;
-	}
-
-	for (int32 i = 0; i < DIRECTION_COUNT; ++i)
-	{
-		const EDirection Direction{ static_cast<EDirection>(i) };
-		const FIntVector NeighborPosition{ BlockPosition + static_cast<FIntVector>(GetBlockFaceNormal(Direction)) };
-
-		if (GetGameWorld()->IsBlockAir(NeighborPosition))
+		for (int32 Y = Position.Y; Y < Position.Y + SIZE; ++Y)
 		{
-			const FIntVector InChunkPosition{ BlockPosition - Position };
-			CreateBlockFace(static_cast<FVector>(InChunkPosition) * BLOCK_SIZE, Direction, BlockTypeID);
+			for (int32 Z = Position.Z; Z < Position.Z + HEIGHT; ++Z)
+			{
+				const FIntVector BlockPosition{ X, Y, Z };
+				const int32 BlockIndex{ GetBlockIndex(BlockPosition) };
+
+				StartMeshRun(BlockPosition, BlockIndex);
+			}
 		}
 	}
 }
 
-FVector AChunk::GetBlockFaceNormal(const EDirection Face) const
+void AChunk::StartMeshRun(const FIntVector& BlockPosition, const int32 BlockIndex)
 {
-	switch (Face)
+	const BlockTypeID BlockTypeID = Blocks[BlockIndex];
+	if (BlockTypeID == FBlockType::AIR_ID || ProcessedBlocks[BlockIndex])
 	{
-		case EDirection::Bottom:
-			return FVector{ 0, 0, -1 };
-		case EDirection::Front:
-			return FVector{ 0, 1, 0 };
-		case EDirection::Left:
-			return FVector{ -1, 0, 0 };
-		case EDirection::Right:
-			return FVector{ 1, 0, 0 };
-		case EDirection::Back:
-			return FVector{ 0, -1, 0 };
-		case EDirection::Top:
-			return FVector{ 0, 0, 1 };
-		default:
-			checkf(false, TEXT("Direction dont exist."));
-			return FVector::ZeroVector;
+		return;
+	}
+
+	for (int32 FaceDirectionIndex = 0; FaceDirectionIndex < DIRECTION_COUNT; ++FaceDirectionIndex)
+	{
+		const EDirection FaceDirection{ static_cast<EDirection>(FaceDirectionIndex) };
+		const FDirectionData FaceDirectionData{ GetDirectionData(FaceDirection, BlockPosition) };
+
+		EDirection Direction[2];
+		FDirectionData DirectionData[2];
+		int32 Size[2];
+
+		for (int DirectionIndex = 0; DirectionIndex < 2; ++DirectionIndex)
+		{
+			Direction[DirectionIndex] = FaceDirectionData.PerpendicularDirections[DirectionIndex];
+			DirectionData[DirectionIndex] = GetDirectionData(Direction[DirectionIndex], BlockPosition);
+			Size[DirectionIndex] = 0;
+
+			for (int32 _ = DirectionData[DirectionIndex].Position; _ < DirectionData[DirectionIndex].Bound; ++_)
+			{
+				const int32 IndexToCheck{ BlockIndex + DirectionData[DirectionIndex].Offset * Size[DirectionIndex] };
+
+				const bool bIsSameType{ Blocks[IndexToCheck] == BlockTypeID };
+				const bool bIsAlreadyProcessed{ ProcessedBlocks[BLOCK_COUNT * FaceDirectionIndex + IndexToCheck] };
+				if (!bIsSameType || bIsAlreadyProcessed)
+				{
+					break;
+				}
+				
+				const FIntVector PositionToCheck
+				{
+					BlockPosition
+						+ DirectionData[DirectionIndex].Normal * Size[DirectionIndex]
+						+ FaceDirectionData.Normal
+				};
+				if (IsBlockInBounds(PositionToCheck))
+				{
+					if (Blocks[IndexToCheck + FaceDirectionData.Offset] != FBlockType::AIR_ID)
+					{
+						break;
+					}
+				}
+				else if (!GetGameWorld()->IsBlockAir(PositionToCheck))
+				{
+					break;
+				}
+
+				ProcessedBlocks[BLOCK_COUNT * FaceDirectionIndex + IndexToCheck] = true;
+				Size[DirectionIndex]++;
+			}
+
+			if (Size[DirectionIndex] > 1)
+			{
+				break;
+			}
+		}
+
+		int32 BestDirectionIndex{ Size[1] > Size[0] ? 1 : 0 };
+
+		if (Size[BestDirectionIndex] > 0)
+		{
+			const FVector InChunkBlockPosition{ static_cast<FVector>(BlockPosition - Position) };
+
+			for (int32 i = 0; i < FACE_VERTICES_COUNT; ++i)
+			{
+				const int32 VertexIndex{ BlockIndices[FACE_VERTICES_COUNT * static_cast<int32>(FaceDirection) + i] };
+				const FVector Scale
+				{
+					FVector::OneVector 
+						+ static_cast<FVector>(DirectionData[BestDirectionIndex].Normal)
+						* (Size[BestDirectionIndex] - 1)
+				};
+				const FVector Vertex{ BlockVertices[VertexIndex] * Scale + InChunkBlockPosition * BLOCK_SIZE };
+
+				MeshVertices.Add(Vertex);
+				MeshNormals.Add(static_cast<FVector>(FaceDirectionData.Normal));
+				MeshColors.Add(FBlockType::FromID(BlockTypeID).Color);
+			}
+
+			for (const auto FaceVertexIndex : FaceVertexIndices)
+			{
+				MeshIndices.Add(MeshVertices.Num() - FACE_VERTICES_COUNT + FaceVertexIndex);
+			}
+		}
 	}
 }
 
-void AChunk::CreateBlockFace(const FVector& InChunkPosition, const EDirection Direction, const BlockTypeID BlockTypeID)
+int32 AChunk::GetBlockIndex(const FIntVector& BlockPosition) const
 {
-	const FVector Normal{ GetBlockFaceNormal(Direction) };
+	const FIntVector InChunkPosition{ BlockPosition - Position };
 
-	for (int32 i = 0; i < FACE_VERTICES_COUNT; ++i)
+	return InChunkPosition.Z * SIZE * SIZE + InChunkPosition.Y * SIZE + InChunkPosition.X;
+}
+
+AChunk::FDirectionData AChunk::GetDirectionData(const EDirection Direction, const FIntVector& BlockPosition) const
+{
+	const FIntVector InChunkPosition{ BlockPosition - Position };
+
+	switch (Direction)
 	{
-		const int32 VertexIndex{ BlockIndices[FACE_VERTICES_COUNT * static_cast<int32>(Direction) + i] };
-		MeshVertices.Add(BlockVertices[VertexIndex] + InChunkPosition);
-
-		MeshNormals.Add(Normal);
-		MeshColors.Add(FBlockType::FromID(BlockTypeID).Color);
-	}
-
-	for (const auto FaceVertexIndex : FaceVertexIndices)
-	{
-		MeshIndices.Add(MeshVertices.Num() - FACE_VERTICES_COUNT + FaceVertexIndex);
+	case EDirection::Bottom:
+		return FDirectionData
+		{
+			FIntVector{ 0, 0, -1 }, 0, -SIZE * SIZE, InChunkPosition.Z,
+			{ EDirection::Right, EDirection::Front }
+		};
+	case EDirection::Front:
+		return FDirectionData
+		{
+			FIntVector{ 0, 1, 0 }, SIZE, SIZE, InChunkPosition.Y,
+			{ EDirection::Right, EDirection::Top }
+		};
+	case EDirection::Left:
+		return FDirectionData
+		{
+			FIntVector{ -1, 0, 0 }, 0, -1, InChunkPosition.X,
+			{ EDirection::Top, EDirection::Front }
+		};
+	case EDirection::Right:
+		return FDirectionData
+		{
+			FIntVector{ 1, 0, 0 }, SIZE, 1, InChunkPosition.X,
+			{ EDirection::Top, EDirection::Front }
+		};
+	case EDirection::Back:
+		return FDirectionData
+		{
+			FIntVector{ 0, -1, 0 }, 0, -SIZE, InChunkPosition.Y,
+			{ EDirection::Right, EDirection::Top }
+		};
+	case EDirection::Top:
+		return FDirectionData
+		{
+			FIntVector{ 0, 0, 1 }, HEIGHT, SIZE * SIZE, InChunkPosition.Z,
+			{ EDirection::Right, EDirection::Front  }
+		};
+	default:
+		checkf(false, TEXT("Direction dont exist."));
+		return {};
 	}
 }

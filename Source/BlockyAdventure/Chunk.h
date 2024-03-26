@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Direction.h"
 #include "BlockType.h"
+#include "Containers/BitArray.h"
 #include "Chunk.generated.h"
 
 class UProceduralMeshComponent;
@@ -117,6 +118,10 @@ private:
 	TArray<int32> MeshIndices;
 	TArray<FVector> MeshNormals;
 	TArray<FColor> MeshColors;
+	/**
+	 * Contains information about which blocks have been processed. Is used during chunk mesh generation.
+	 */
+	TBitArray<> ProcessedBlocks{ false, BLOCK_COUNT * DIRECTION_COUNT };
 
 	/**
 	 * Represent this chunk. Blocks are mapped into flat array, first by Z, then by Y, then by X. Each block is
@@ -135,14 +140,14 @@ private:
 
 	const FVector BlockVertices[8]
 	{
-		FVector{          0,          0,          0 }, // 0 left-back-bottom
-		FVector{ BLOCK_SIZE,          0,          0 }, // 1 right-back-bottom
-		FVector{          0, BLOCK_SIZE,	      0 }, // 2 left-front-bottom
-		FVector{ BLOCK_SIZE, BLOCK_SIZE,          0 }, // 3 right-front-bottom
-		FVector{          0,          0, BLOCK_SIZE }, // 4 left-back-top
-		FVector{ BLOCK_SIZE,          0, BLOCK_SIZE }, // 5 right-back-top
-		FVector{          0, BLOCK_SIZE, BLOCK_SIZE }, // 6 left-front-top
-		FVector{ BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE }, // 7 right-front-top
+		FVector{          0,          0,          0 }, // 0 left-front-bottom
+		FVector{ BLOCK_SIZE,          0,          0 }, // 1 right-front-bottom
+		FVector{          0, BLOCK_SIZE,	      0 }, // 2 left-back-bottom
+		FVector{ BLOCK_SIZE, BLOCK_SIZE,          0 }, // 3 right-back-bottom
+		FVector{          0,          0, BLOCK_SIZE }, // 4 left-front-top
+		FVector{ BLOCK_SIZE,          0, BLOCK_SIZE }, // 5 right-front-top
+		FVector{          0, BLOCK_SIZE, BLOCK_SIZE }, // 6 left-back-top
+		FVector{ BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE }, // 7 right-back-top
 	};
 
 	const int32 BlockIndices[24]
@@ -160,25 +165,24 @@ private:
 	inline static constexpr int32 FACE_VERTICES_COUNT{ 4 };
 
 	/**
-	 * Try to create mesh for all visible faces of the block at specified position. Will create no
-	 * mesh when no face of the block is visible. Create mesh data will be appended to the chunk mesh data.
+	 * Start creating mesh run for block at a specified position, run will try to create as much quads as possible
+	 * using greedy meshing alghoritm. Currently using only quad strips.
 	 */
-	void CreateBlockMesh(const FIntVector& BlockPosition);
+	void StartMeshRun(const FIntVector& BlockPosition, const int32 BlockIndex);
 
 	/**
-	 * Get normal vector of the face of the block.
-	 * 
-	 * \param Face Direction which represent the face of the block.
-	 * \return Normal vector of the face of the block.
+	 * Get index which can be used to access blocks array from a specified block position.
 	 */
-	FVector GetBlockFaceNormal(const EDirection Face) const;
+	int32 GetBlockIndex(const FIntVector& BlockPosition) const;
 
-	/**
-	 * Append mesh data for one face of the block.
-	 * 
-	 * \param Position Position of the block, local to this chunk.
-	 * \param Direction Direction of the face of the block.
-	 * \param BlockType Type of block.
-	 */
-	void CreateBlockFace(const FVector& InChunkPosition, const EDirection Direction, const BlockTypeID BlockTypeID);
+	struct FDirectionData
+	{
+		FIntVector Normal;
+		int32 Bound;
+		int32 Offset;
+		int32 Position;
+		EDirection PerpendicularDirections[2];
+	};
+
+	FDirectionData GetDirectionData(const EDirection Direction, const FIntVector& BlockPosition) const;
 };
