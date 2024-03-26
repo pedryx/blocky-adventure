@@ -29,7 +29,14 @@ void ASector::Initialize(
 	GameWorld = InGameWorld;
 	Position = InPosition;
 	bShouldIgnoreFirstOverlap = bInShouldIgnoreFirstOverlap;
-	FileName = FPaths::ProjectSavedDir() + FString::Printf(TEXT("/Sectors/sector_%d_%d.bin"), Position.X, Position.Y);
+	FileName = FPaths::ProjectSavedDir() + FString::Printf(TEXT("Sectors/sector_%d_%d.bin"), Position.X, Position.Y);
+
+	const FString SectorsDirectory{ FPaths::ProjectSavedDir() + TEXT("Sectors") };
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	if (!PlatformFile.DirectoryExists(*SectorsDirectory))
+	{
+		PlatformFile.CreateDirectory(*SectorsDirectory);
+	}
 
 	CreateChunks();
 }
