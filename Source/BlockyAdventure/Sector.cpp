@@ -7,6 +7,7 @@
 #include "Components/BoxComponent.h"
 #include "HAL/PlatformFilemanager.h"
 #include "Misc/FileHelper.h"
+#include "Async/ParallelFor.h"
 
 ASector::ASector()
 {
@@ -41,18 +42,12 @@ void ASector::Generate()
 		return;
 	}
 
-	for (const TObjectPtr<AChunk> Chunk : Chunks)
-	{
-		Chunk->Generate();
-	}
+	ParallelFor(Chunks.Num(), [this](int32 Index) { Chunks[Index]->Generate(); });
 }
 
 void ASector::CreateMesh()
 {
-	for (const TObjectPtr<AChunk> Chunk : Chunks)
-	{
-		Chunk->CreateMesh();
-	}
+	ParallelFor(Chunks.Num(), [this](int32 Index) { Chunks[Index]->CreateMesh(); });
 }
 
 void ASector::CookMesh(const bool bUseAsyncCooking)

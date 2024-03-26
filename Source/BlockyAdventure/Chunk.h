@@ -50,6 +50,10 @@ public:
 	 * World size of chunk in X and Y dimension.
 	 */
 	inline static constexpr int32 TOTAL_SIZE{ SIZE * BLOCK_SIZE };
+	/**
+	 * Number of blocks in the chunk.
+	 */
+	inline static constexpr int32 BLOCK_COUNT{ SIZE * SIZE * HEIGHT };
 
 	/**
 	 * Initialize this chunk.
