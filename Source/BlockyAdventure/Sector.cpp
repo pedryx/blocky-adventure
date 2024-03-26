@@ -35,6 +35,12 @@ void ASector::Initialize(
 
 void ASector::Generate()
 {
+	if (DoSectorFileExists())
+	{
+		LoadFromFile();
+		return;
+	}
+
 	for (const TObjectPtr<AChunk> Chunk : Chunks)
 	{
 		Chunk->Generate();
@@ -138,6 +144,13 @@ void ASector::LoadFromFile()
 	delete FileHandle;
 }
 
+bool ASector::DoSectorFileExists() const
+{
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	return PlatformFile.FileExists(*FileName);
+}
+
 void ASector::CreateChunks()
 {
 	Chunks.Reserve(SIZE * SIZE);
@@ -237,7 +250,7 @@ void ASector::CreateTrigger(
 	OutTrigger->SetCollisionResponseToAllChannels(ECR_Ignore);
 	OutTrigger->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
-	OutTrigger->SetHiddenInGame(false);
+	OutTrigger->SetHiddenInGame(bShouldBeHidden);
 
 	if (bShouldBeginOverlap)
 	{
@@ -320,7 +333,7 @@ void ASector::OnBoxEndOverlap(
 	}
 	UE_LOG(
 		LogTemp, 
-		Warning, 
+		Display, 
 		TEXT("Overlap ends with a despawn sector trigger in sector at %s."), 
 		*Position.ToString()
 	);

@@ -191,6 +191,7 @@ void AGameWorld::DespawnSector(const FIntVector& BlockPosition)
 		return;
 	}
 
+	Sector->SaveToFile();
 	Sectors.RemoveSwap(Sector);
 
 	TArray<AActor*> AttachedActors;

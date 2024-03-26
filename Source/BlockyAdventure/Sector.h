@@ -102,6 +102,11 @@ public:
 	 */
 	void LoadFromFile();
 
+	/**
+	 * Determine if file with sector's block data exists.
+	 */
+	bool DoSectorFileExists() const;
+
 private:
 	/**
 	 * Contains all chunks, which belong to this sector. Chunks are mapped into flat array, first by X, then by Y.
