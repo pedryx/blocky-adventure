@@ -146,6 +146,19 @@ void AChunk::StartMeshRun(const FIntVector& BlockPosition, const int32 BlockInde
 		FDirectionData DirectionData[2]{};
 		int32 Size[2]{};
 
+		const FIntVector PositionToCheck{ BlockPosition + FaceDirectionData.Normal };
+		if (IsBlockInBounds(PositionToCheck))
+		{
+			if (Blocks[BlockIndex + FaceDirectionData.Offset] != FBlockType::AIR_ID)
+			{
+				continue;
+			}
+		}
+		else if (!GetGameWorld()->IsBlockAir(PositionToCheck))
+		{
+			continue;
+		}
+
 		for (int DirectionIndex = 0; DirectionIndex < 2; ++DirectionIndex)
 		{
 			Direction[DirectionIndex] = FaceDirectionData.PerpendicularDirections[DirectionIndex];
@@ -159,24 +172,6 @@ void AChunk::StartMeshRun(const FIntVector& BlockPosition, const int32 BlockInde
 				const bool bIsSameType{ Blocks[IndexToCheck] == BlockTypeID };
 				const bool bIsAlreadyProcessed{ ProcessedBlocks[BLOCK_COUNT * FaceDirectionIndex + IndexToCheck] };
 				if (!bIsSameType || bIsAlreadyProcessed)
-				{
-					break;
-				}
-				
-				const FIntVector PositionToCheck
-				{
-					BlockPosition
-						+ DirectionData[DirectionIndex].Normal * Size[DirectionIndex]
-						+ FaceDirectionData.Normal
-				};
-				if (IsBlockInBounds(PositionToCheck))
-				{
-					if (Blocks[IndexToCheck + FaceDirectionData.Offset] != FBlockType::AIR_ID)
-					{
-						break;
-					}
-				}
-				else if (!GetGameWorld()->IsBlockAir(PositionToCheck))
 				{
 					break;
 				}
