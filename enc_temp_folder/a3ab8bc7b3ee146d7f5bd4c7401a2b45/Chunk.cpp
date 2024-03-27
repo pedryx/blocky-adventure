@@ -142,9 +142,9 @@ void AChunk::StartMeshRun(const FIntVector& BlockPosition, const int32 BlockInde
 		const EDirection FaceDirection{ static_cast<EDirection>(FaceDirectionIndex) };
 		const FDirectionData FaceDirectionData{ GetDirectionData(FaceDirection, BlockPosition) };
 
-		EDirection Direction[2]{};
-		FDirectionData DirectionData[2]{};
-		int32 Size[2]{};
+		EDirection Direction[2];
+		FDirectionData DirectionData[2];
+		int32 Size[2];
 
 		for (int DirectionIndex = 0; DirectionIndex < 2; ++DirectionIndex)
 		{

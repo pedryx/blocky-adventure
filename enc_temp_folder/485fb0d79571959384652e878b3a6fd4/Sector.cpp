@@ -59,13 +59,7 @@ void ASector::CreateMesh()
 	ParallelFor(Chunks.Num(), [this](int32 Index) { Chunks[Index]->CreateMesh(); });
 
 	float TimeElapsedInMs = (FDateTime::UtcNow() - StartTime).GetTotalMilliseconds();
-	int32 VertexCount{ 0 };
-	for (const AChunk* Chunk : Chunks)
-	{
-		VertexCount += Chunk->GetVertexCount();
-	}
-
-	UE_LOG(LogTemp, Display, TEXT("Created Meshes with %d vertices in %f ms."), VertexCount, TimeElapsedInMs);
+	UE_LOG(LogTemp, Display, TEXT("Create Meshes in %fms"), TimeElapsedInMs);
 }
 
 void ASector::CookMesh(const bool bUseAsyncCooking)

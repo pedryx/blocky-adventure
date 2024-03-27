@@ -113,11 +113,6 @@ public:
 	 */
 	uint8* GetBlockData() { return Blocks.GetData(); }
 
-	/**
-	 * Get number of vertivec in this chunk mesh.
-	 */
-	uint32 GetVertexCount() const { return MeshVertices.Num(); }
-
 private:
 	/**
 	 * Mesh for blocks which belongs to this chunk.
