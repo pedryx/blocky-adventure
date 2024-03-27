@@ -313,11 +313,13 @@ void APlayerCharacterControllerBase::UpdateCurrentTrace()
 		return;
 	}
 
-	ensureAlwaysMsgf(
-		!GameWorld->IsBlockAir(BlockPosition), 
-		TEXT("Current trace traced air block at position %s"), 
-		*BlockPosition.ToString()
-	);
+	if (GameWorld->IsBlockAir(BlockPosition))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Current trace traced air block at position % s."), *BlockPosition.ToString());
+		CurrentTrace = FLineTraceResults::Fail();
+		return;
+	}
+
 	CurrentTrace = FLineTraceResults{ true, GameWorld->GetBlock(BlockPosition), HitResult.ImpactNormal };
 }
 
