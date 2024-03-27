@@ -3,8 +3,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Direction.h"
-#include "BlockType.h"
 #include "Containers/BitArray.h"
+#include "BlockPtr.h"
 #include "Chunk.generated.h"
 
 class UProceduralMeshComponent;
@@ -86,17 +86,22 @@ public:
 	/**
 	 * Get a game world which owns sector which owns this chunk.
 	 */
-	TObjectPtr<AGameWorld> GetGameWorld();
+	AGameWorld* GetGameWorld();
 
 	/**
 	 * Get a sector which owns this chunk.
 	 */
-	TObjectPtr<ASector> GetSector() const { return Sector; }
+	ASector* GetSector() const { return Sector; }
 
 	/**
 	 * Get a reference to a block at specified position. Specified position must be in the bounds of this chunk.
 	 */
-	BlockTypeID& GetBlock(const FIntVector& BlockPosition);
+	const FBlockPtr GetBlock(const FIntVector& BlockPosition) const;
+
+	/**
+	 * Get a reference to a block at specified position. Specified position must be in the bounds of this chunk.
+	 */
+	FBlockPtr GetBlock(const FIntVector& BlockPosition);
 
 	/**
 	 * Determine if a block at a specified position is within the bounds of this chunk.

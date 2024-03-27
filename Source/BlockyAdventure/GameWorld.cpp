@@ -39,11 +39,16 @@ AChunk* AGameWorld::GetChunk(const FIntVector& BlockPosition)
 	return Sector->GetChunk(BlockPosition);
 }
 
-BlockTypeID& AGameWorld::GetBlock(const FIntVector& BlockPosition)
+FBlockPtr AGameWorld::GetBlock(const FIntVector& BlockPosition)
 {
 	AChunk* const Chunk{ GetChunk(BlockPosition) };
 
 	return Chunk->GetBlock(BlockPosition);
+}
+
+const FBlockPtr AGameWorld::GetBlock(const FIntVector& BlockPosition) const
+{
+	return const_cast<AGameWorld*>(this)->GetBlock(BlockPosition);
 }
 
 bool AGameWorld::IsBlockAir(const FIntVector& BlockPosition)
@@ -54,7 +59,7 @@ bool AGameWorld::IsBlockAir(const FIntVector& BlockPosition)
 	}
 	else
 	{
-		return GetBlock(BlockPosition) == FBlockType::AIR_ID;
+		return GetBlock(BlockPosition).IsAir();
 	}
 }
 

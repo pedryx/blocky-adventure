@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "BlockType.h"
+#include "BlockPtr.h"
 #include "GameWorld.generated.h"
 
 class ASector;
@@ -48,7 +48,12 @@ public:
 	/**
 	 * Get a reference to a block at specified position. Specified position must be in the bounds of any loaded sector.
 	 */
-	BlockTypeID& GetBlock(const FIntVector& BlockPosition);
+	FBlockPtr GetBlock(const FIntVector& BlockPosition);
+
+	/**
+	 * Get a reference to a block at specified position. Specified position must be in the bounds of any loaded sector.
+	 */
+	const FBlockPtr GetBlock(const FIntVector& BlockPosition) const;
 
 	/**
 	 * Determine if a block at a specified position is an air (empty block). Blocks which are not within bounds of any

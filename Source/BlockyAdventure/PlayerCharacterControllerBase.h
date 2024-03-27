@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "BlockType.h"
+#include "BlockPtr.h"
 #include "PlayerCharacterControllerBase.generated.h"
 
 class UInputAction;
@@ -10,6 +10,7 @@ class UInputMappingContext;
 class UEnhancedInputComponent;
 struct FInputActionValue;
 class AGameWorld;
+struct FBlockPtr;
 
 UCLASS(Abstract, Blueprintable)
 class BLOCKYADVENTURE_API APlayerCharacterControllerBase : public APlayerController
@@ -104,17 +105,43 @@ private:
 	 */
 	bool bDestructionActive{ false };
 	/**
-	 * Position of a block which is currently being destructed.
+	 * Block which is currently being destroyed.
 	 */
-	FIntVector BlockBeingDestructedPosition{ FIntVector::ZeroValue };
-	/**
-	 * ID of a block type of a block which is currently being destructed.
-	 */
-	BlockTypeID BlockBeingDestructedID{};
+	FBlockPtr BlockBeingDestroyed{};
 	/**
 	 * Time elapsed from the time the destruction of blocked begined in seconds.
 	 */
 	float DestructionAccumulator{ 0.0f };
+
+	/**
+	 * Result of the line trace from player into the game world.
+	 */
+	struct FLineTraceResults
+	{
+		/**
+		 * Determine if line trace hit some block.
+		 */
+		bool bIsSuccess;
+
+		FBlockPtr Block{};
+		/**
+		 * Normal of hitted face of block if any block was hitted otherwise zero vector.
+		 */
+		FVector Normal;
+
+		/**
+		 * Create instance of failed line trace.
+		 */
+		static FLineTraceResults Fail()
+		{
+			return FLineTraceResults{ false, FBlockPtr{}, FVector::ZeroVector };
+		}
+	};
+
+	/**
+	 * Result of current trace. Result is updated every frame.
+	 */
+	FLineTraceResults CurrentTrace{ FLineTraceResults::Fail() };
 
 	void InitializeInput();
 
@@ -127,43 +154,6 @@ private:
 	void HandleChangeSlot(const FInputActionValue& InputActionValue);
 	void HandleDebug(const FInputActionValue& InputActionValue);
 	#pragma endregion
-
-	/**
-	 * Result of the line trace from player into the game world.
-	 */
-	struct FLineTraceResults
-	{
-		/**
-		 * Determine if line trace hit some block.
-		 */
-		bool bIsSuccess;
-		/**
-		 * Position of hitted block if any otherwise zero vector.
-		 */
-		FIntVector BlockPosition;
-		/**
-		 * Normal of hitted face of block if any block was hitted otherwise zero vector.
-		 */
-		FVector Normal;
-		/**
-		 * GameWorld to which hitted block belongs. If no block was hitted then nullptr.
-		 */
-		UPROPERTY()
-		TObjectPtr<AGameWorld> GameWorld;
-
-		/**
-		 * Create instance of failed line trace.
-		 */
-		static FLineTraceResults Fail()
-		{
-			return FLineTraceResults{ false, FIntVector::ZeroValue, FVector::ZeroVector, nullptr };
-		}
-	};
-
-	/**
-	 * Result of current trace. Result is updated every frame.
-	 */
-	FLineTraceResults CurrentTrace{};
 
 	/**
 	 * Update CurrentTrace.

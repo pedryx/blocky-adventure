@@ -82,11 +82,16 @@ AChunk* ASector::GetChunk(const FIntVector& BlockPosition)
 	return Chunks[ChunkIndex];
 }
 
-BlockTypeID& ASector::GetBlock(const FIntVector& BlockPosition)
+FBlockPtr ASector::GetBlock(const FIntVector& BlockPosition)
 {
 	AChunk* const Chunk{ GetChunk(BlockPosition) };
 
 	return Chunk->GetBlock(BlockPosition);
+}
+
+const FBlockPtr ASector::GetBlock(const FIntVector& BlockPosition) const
+{
+	return const_cast<ASector*>(this)->GetBlock(BlockPosition);
 }
 
 bool ASector::IsBlockInBounds(const FIntVector& BlockPosition) const

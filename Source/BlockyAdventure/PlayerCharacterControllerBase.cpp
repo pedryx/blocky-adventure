@@ -55,7 +55,7 @@ void APlayerCharacterControllerBase::Tick(float DeltaSeconds)
 
 	if (bDestructionButtonDown)
 	{
-		if (CurrentTrace.bIsSuccess && CurrentTrace.BlockPosition != BlockBeingDestructedPosition)
+		if (CurrentTrace.bIsSuccess && CurrentTrace.Block.GetPosition() != BlockBeingDestroyed.GetPosition())
 		{
 			StartBlockDestruction();
 		}
@@ -263,28 +263,6 @@ void APlayerCharacterControllerBase::HandleChangeSlot(const FInputActionValue& I
 void APlayerCharacterControllerBase::HandleDebug(const FInputActionValue& InputActionValue)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Debug button pressed!"));
-
-	if (CurrentTrace.GameWorld != nullptr)
-	{
-		static bool bShouldSave{ true };
-		ASector* Sector{ CurrentTrace.GameWorld->GetSector(CurrentTrace.BlockPosition) };
-
-		if (bShouldSave)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Saving sector..."));
-			Sector->SaveToFile();
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Loading sector..."));
-			Sector->LoadFromFile();
-
-			Sector->CreateMesh();
-			Sector->CookMesh(false);
-		}
-
-		bShouldSave = !bShouldSave;
-	}
 }
 
 void APlayerCharacterControllerBase::UpdateCurrentTrace()
@@ -329,7 +307,7 @@ void APlayerCharacterControllerBase::UpdateCurrentTrace()
 	}
 
 	// The block was destroyed and is set to air, but physics of the chunk is not yet updated.
-	if (BlockBeingDestructedPosition == BlockPosition &&  GameWorld->IsBlockAir(BlockPosition))
+	if (BlockBeingDestroyed.GetPosition() == BlockPosition && GameWorld->IsBlockAir(BlockPosition))
 	{
 		CurrentTrace = FLineTraceResults::Fail();
 		return;
@@ -340,7 +318,7 @@ void APlayerCharacterControllerBase::UpdateCurrentTrace()
 		TEXT("Current trace traced air block at position %s"), 
 		*BlockPosition.ToString()
 	);
-	CurrentTrace = FLineTraceResults{ true, BlockPosition, HitResult.ImpactNormal, GameWorld };
+	CurrentTrace = FLineTraceResults{ true, GameWorld->GetBlock(BlockPosition), HitResult.ImpactNormal };
 }
 
 void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID BlockTypeID) const
@@ -351,25 +329,20 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 	}
 
 	// Block could be placed inside player.
-	if (BlockTypeID != FBlockType::AIR_ID && DoPlayerIntersect(CurrentTrace.BlockPosition))
+	if (BlockTypeID != FBlockType::AIR_ID && DoPlayerIntersect(CurrentTrace.Block.GetPosition()))
 	{
 		return;
 	}
 
-	FIntVector BlockPosition{ CurrentTrace.BlockPosition  };
+	FIntVector BlockPosition{ CurrentTrace.Block.GetPosition()};
 	if (BlockTypeID != FBlockType::AIR_ID)
 	{
 		BlockPosition += static_cast<FIntVector>(CurrentTrace.Normal);
 	}
 
-	CurrentTrace.GameWorld->GetBlock(BlockPosition) = BlockTypeID;
-
-	AChunk* const Chunk{ CurrentTrace.GameWorld->GetChunk(BlockPosition) };
-	Chunk->CreateMesh();
-	Chunk->CookMesh(false);
-
-	const ASector* const Sector{ Chunk->GetSector() };
-	Sector->SaveToFile();
+	AGameWorld* const GaneWorld{ CurrentTrace.Block.GetGameWorld() };
+	FBlockPtr Block{ GaneWorld->GetBlock(BlockPosition) };
+	Block.SetAndUpdate(BlockTypeID);
 
 	if (BlockTypeID == FBlockType::AIR_ID)
 	{
@@ -384,13 +357,13 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 		for (const FIntVector& Direction : Directions)
 		{
 			const FIntVector NeighborBlockPosition{ BlockPosition + Direction };
-			if (!CurrentTrace.GameWorld->IsBlockInBounds(NeighborBlockPosition))
+			if (!GaneWorld->IsBlockInBounds(NeighborBlockPosition))
 			{
 				continue;
 			}
 
-			AChunk* const NeighborChunk{ CurrentTrace.GameWorld->GetChunk(NeighborBlockPosition) };
-			if (NeighborChunk != Chunk)
+			AChunk* const NeighborChunk{ GaneWorld->GetChunk(NeighborBlockPosition) };
+			if (NeighborChunk != Block.GetChunk())
 			{
 				NeighborChunk->CreateMesh();
 				NeighborChunk->CookMesh(false);
@@ -403,19 +376,19 @@ void APlayerCharacterControllerBase::TrySetLineTracedBlock(const BlockTypeID Blo
 
 void APlayerCharacterControllerBase::UpdateWireframePosition() const
 {
-	const FIntVector BlockPosition{ CurrentTrace.BlockPosition + static_cast<FIntVector>(CurrentTrace.Normal) };
+	const FIntVector BlockPosition{ CurrentTrace.Block.GetPosition() + static_cast<FIntVector>(CurrentTrace.Normal)};
 
 	bool bShouldHideWireframe
 	{
-		!CurrentTrace.bIsSuccess 
-			|| SelectedBlockID == FBlockType::AIR_ID
-			|| DoPlayerIntersect(BlockPosition)
+		!CurrentTrace.bIsSuccess || SelectedBlockID == FBlockType::AIR_ID || DoPlayerIntersect(BlockPosition)
 	};
 	if (bShouldHideWireframe)
 	{
 		WireframeActor->SetActorHiddenInGame(true);
 		return;
 	}
+
+	const FBlockPtr Block{ CurrentTrace.Block.GetGameWorld()->GetBlock(BlockPosition) };
 
 	const FVector NewWireframePosition
 	{
@@ -445,13 +418,13 @@ void APlayerCharacterControllerBase::StartBlockDestruction()
 		return;
 	}
 
-	BlockBeingDestructedPosition = CurrentTrace.BlockPosition;
+	BlockBeingDestroyed = CurrentTrace.Block;
 	bDestructionActive = true;
 	DestructionAccumulator = 0.0f;
 
 	const FVector NewDestructingBlockPosition
 	{
-		static_cast<FVector>(CurrentTrace.BlockPosition) * AChunk::BLOCK_SIZE
+		static_cast<FVector>(CurrentTrace.Block.GetPosition()) * AChunk::BLOCK_SIZE
 			+ FVector{ AChunk::BLOCK_SIZE, AChunk::BLOCK_SIZE, AChunk::BLOCK_SIZE } / 2
 	};
 
@@ -460,9 +433,7 @@ void APlayerCharacterControllerBase::StartBlockDestruction()
 	Transform.SetTranslation(NewDestructingBlockPosition);
 	DestructingBlockActor->SetActorTransform(Transform);
 
-	BlockBeingDestructedID = CurrentTrace.GameWorld->GetBlock(CurrentTrace.BlockPosition);
-
-	const FColor Color{ FBlockType::FromID(BlockBeingDestructedID).Color };
+	const FColor Color{ FBlockType::FromID(BlockBeingDestroyed.GetBlockTypeID()).Color };
 	DestructionMaterial->SetVectorParameterValue(TEXT("Color"), Color.ReinterpretAsLinear());
 	DestructionMaterial->SetScalarParameterValue(TEXT("Progress"), 0.0f);
 }
@@ -487,7 +458,7 @@ void APlayerCharacterControllerBase::ProgressBlockDestruction(const float DeltaS
 	}
 
 	DestructionAccumulator += DeltaSeconds;
-	const float Progress{ DestructionAccumulator / FBlockType::FromID(BlockBeingDestructedID).DestructionTime };
+	const float Progress{ DestructionAccumulator / FBlockType::FromID(BlockBeingDestroyed.GetBlockTypeID()).DestructionTime };
 
 	if (Progress >= 1.0f)
 	{

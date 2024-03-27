@@ -23,7 +23,6 @@ void AChunk::Generate()
 	{
 		for (int32 Y = Position.Y; Y < Position.Y + SIZE; ++Y)
 		{
-			//const int32 Height{ 64 };
 			const int32 Height{ GetGameWorld()->ComputeHeight(FIntVector2{ X, Y }) };
 	
 			for (int32 Z = 0; Z <= Height; ++Z)
@@ -67,18 +66,23 @@ void AChunk::CookMesh(const bool bUseAsyncCooking)
 	);
 }
 
-TObjectPtr<AGameWorld> AChunk::GetGameWorld()
+AGameWorld* AChunk::GetGameWorld()
 {
 	return Sector->GetGameWorld();
 }
 
-BlockTypeID& AChunk::GetBlock(const FIntVector& BlockPosition)
+const FBlockPtr AChunk::GetBlock(const FIntVector& BlockPosition) const
 {
-	checkf(IsBlockInBounds(BlockPosition), TEXT("Block is not within position of this chunk."));
+	return const_cast<AChunk*>(this)->GetBlock(BlockPosition);
+}
+
+FBlockPtr AChunk::GetBlock(const FIntVector& BlockPosition)
+{
+	checkf(IsBlockInBounds(BlockPosition), TEXT("Block is not within bounds of the chunk."));
 
 	const int32 BlockIndex{ GetBlockIndex(BlockPosition) };
 
-	return Blocks[BlockIndex];
+	return FBlockPtr{ &Blocks[BlockIndex], BlockPosition, this, Sector, GetGameWorld() };
 }
 
 bool AChunk::IsBlockInBounds(const FIntVector& BlockPosition) const

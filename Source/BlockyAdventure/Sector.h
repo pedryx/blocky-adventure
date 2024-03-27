@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "BlockType.h"
+#include "BlockPtr.h"
 #include "Sector.generated.h"
 
 class AGameWorld;
@@ -73,7 +73,12 @@ public:
 	/**
 	 * Get a reference to a block at specified position. Specified position must be in the bounds of this sector.
 	 */
-	BlockTypeID& GetBlock(const FIntVector& BlockPosition);
+	FBlockPtr GetBlock(const FIntVector& BlockPosition);
+
+	/**
+	 * Get a reference to a block at specified position. Specified position must be in the bounds of this sector.
+	 */
+	const FBlockPtr GetBlock(const FIntVector& BlockPosition) const;
 
 	/**
 	 * Determine if a block at a specified position is within the bounds of this sector.
