@@ -1,12 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Octave.generated.h"
 
 /**
- * Octaves used for random noise generation.
+ * Represent an octave. Octaves are used for terrain generation.
  */
 USTRUCT(BlueprintType)
 struct BLOCKYADVENTURE_API FOctave

@@ -22,8 +22,6 @@ public:
 
 	/**
 	 * Number of chunks in X and Y dimensions.
-	 * 
-	 * @param bInIgnoreFirstOverlap Determine if first overlap end event with sector trigger should be ignored.
 	 */
 	inline static constexpr int32 SIZE{ 8 };
 
@@ -31,7 +29,7 @@ public:
 	 * Initialize this sector.
 	 * 
 	 * \param InGameWorld Game world to which this sector belongs.
-	 * \param InPosition Block position of the lower left back corner of this sector
+	 * \param InPosition Block position of the most left-back-down block of this sector
 	 * \param bInShouldIgnoreFirstOverlap Determine if first overlap event with sector trigger should be ignored. Note
 	 * that this trigger fires when spawned with player in its area. Trigger of this event results of deletion of this
 	 * sector.
@@ -55,7 +53,7 @@ public:
 	/**
 	 * Cook mesh for each chunk within this sector.
 	 * 
-	 * \param bUseAsyncCooking Determine if mesh should be cooked asynchrounsly.
+	 * \param bUseAsyncCooking Determine if meshes should be cooked asynchrounsly.
 	 */
 	void CookMesh(const bool bUseAsyncCooking);
 
@@ -65,35 +63,35 @@ public:
 	AGameWorld* GetGameWorld() const { return GameWorld; }
 
 	/**
-	 * Get chunk to which a block at a specified position belongs. Specified position must be within this sector
-	 * bounds.
+	 * Get chunk to which a block at a specified block position belongs. Specified block position must be within this
+	 * sector bounds.
 	 */
 	AChunk* GetChunk(const FIntVector& BlockPosition);
 
 	/**
-	 * Get a reference to a block at specified position. Specified position must be in the bounds of this sector.
+	 * Get a pointer to a block at a specified block position. Specified block position must be within the bounds of
+	 * this sector.
 	 */
 	FBlockPtr GetBlock(const FIntVector& BlockPosition);
 
 	/**
-	 * Get a reference to a block at specified position. Specified position must be in the bounds of this sector.
+	 * Get a pointer to a block at a specified block position. Specified block position must be within the bounds of
+	 * this sector.
 	 */
 	const FBlockPtr GetBlock(const FIntVector& BlockPosition) const;
 
 	/**
-	 * Determine if a block at a specified position is within the bounds of this sector.
+	 * Determine if a block at a specified block position is within the bounds of this sector.
 	 */
 	bool IsBlockInBounds(const FIntVector& BlockPosition) const;
 	
 	/**
-	 * Get the position of the left-back-down corner of the sector.
-	 * 
-	 * \return 
+	 * Get the block position of the mostleft-back-down block of the sector.
 	 */
 	FIntVector GetPosition() const { return Position; }
 
 	/**
-	 * Determine if sector is fully loaded with generated terrain, generated mesh and cooked up mesh.
+	 * Determine if sector is fully loaded and if it has generated terrain, generated mesh and cooked mesh.
 	 */
 	bool IsReady() const { return bIsReady; }
 
@@ -114,7 +112,7 @@ public:
 
 private:
 	/**
-	 * Contains all chunks, which belong to this sector. Chunks are mapped into flat array, first by X, then by Y.
+	 * Contains all chunks within this sector. Chunks are mapped into flat array, first by X, then by Y.
 	 */
 	UPROPERTY()
 	TArray<TObjectPtr<AChunk>> Chunks;
@@ -124,7 +122,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<AGameWorld> GameWorld;
 	/**
-	 * Position of the left-back-down corner of the sector.
+	 * Block position of the most left-back-down block of the sector.
 	 */
 	FIntVector Position;
 	/**
@@ -133,7 +131,7 @@ private:
 	 */
 	bool bShouldIgnoreFirstOverlap;
 	/**
-	 * Determine if sector is fully loaded with generated terrain, generated mesh and cooked up mesh.
+	 * Determine if sector is fully loaded and if it has generated terrain, generated mesh and cooked mesh.
 	 */
 	bool bIsReady{ false };
 
@@ -164,12 +162,12 @@ private:
 	TObjectPtr<UBoxComponent> WestTrigger;
 
 	/**
-	 * File name where block data will be stored.
+	 * File name of the sector file where block data will be stored.
 	 */
 	FString FileName;
 
 	/**
-	 * Create chunk actors which belong to this sector.
+	 * Create chunk actors for chunks within this sector.
 	 */
 	void CreateChunks();
 
@@ -185,9 +183,9 @@ private:
 	 * \param Name Name which will be given to created trigger.
 	 * \param Position Position of the center of the trigger.
 	 * \param Size Size of the trigger.
-	 * \param bShouldBeginOverlap Determine if trigger should fires begin overlap events which results in sectors
+	 * \param bShouldBeginOverlap Determine if trigger should fire begin overlap events, which results in sectors
 	 * being spawned.
-	 * \param bShouldEndOverlap Determine if trigger should fires end overlap events which results in this sector being
+	 * \param bShouldEndOverlap Determine if trigger should fire end overlap events, which results in this sector being
 	 * despawned.
 	 * \param bShouldBeHidden Determine if trigger outline should be hidden.
 	 */

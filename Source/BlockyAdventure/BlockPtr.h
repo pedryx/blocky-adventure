@@ -26,7 +26,7 @@ public:
 
 
 	/**
-	 * Get the position of this block.
+	 * Get the block position of this block.
 	 */
 	FIntVector GetPosition() const { return Position; }
 
@@ -50,9 +50,8 @@ public:
 	 */
 	bool IsValid() const { return bIsValid && TypeID != nullptr; }
 
-
 	/**
-	 * Determine if this block is air (empty) block.
+	 * Determine if this block is an air (empty) block.
 	 */
 	bool IsAir() const { return *TypeID == FBlockType::AIR_ID; }
 
@@ -67,10 +66,10 @@ public:
 	void SetBlock(BlockTypeID ID) { *TypeID = ID; }
 
 	/**
-	 * Set this block to a block type of a specified ID. Then also create and cook the mesh of the chunk to which this
+	 * Set this block to a block type of a specified ID and then recreate and cook the mesh of the chunk to which this
 	 * block belongs.
 	 * 
-	 * \param bSaveSector Determine if owning sector should be saved to file after setting this block.
+	 * \param bSaveSector Determine if owning sector should be saved to the file after setting this block.
 	 * \param bUseAsyncCooking Determine if the mesh should by cooked asynchrously.
 	 */
 	void SetAndUpdate(const BlockTypeID ID, const bool bSaveSector = true, const bool bUseAsyncCooking = false);
@@ -99,7 +98,7 @@ private:
 	 */
 	AGameWorld* GameWorld{};
 	/**
-	* Determine if this block reference instance is valid.
+	* Determine if this block pointer is valid.
 	*/
 	bool bIsValid{ false };
 	/**

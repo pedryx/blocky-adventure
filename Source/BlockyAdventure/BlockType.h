@@ -8,7 +8,7 @@
 using BlockTypeID = uint8;
 
 /**
- * Represent a type of the block.
+ * Represent a type of a block.
  */
 struct BLOCKYADVENTURE_API FBlockType
 {

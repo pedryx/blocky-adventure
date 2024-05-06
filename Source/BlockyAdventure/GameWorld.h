@@ -36,53 +36,59 @@ public:
 	TArray<FOctave> Octaves;
 
 	/**
-	 * Get a sector of a specified block position. Block position must be in the bounds of any loaded sector.
+	 * Get a sector of a specified block position. Block position must be within the bounds of any loaded sector.
 	 */
 	ASector* GetSector(const FIntVector& BlockPosition);
 
 	/**
-	 * Get a chunk of a specified block position. Block position must be in the bounds of any loaded sector.
+	 * Get a chunk of a specified block position. Block position must be within the bounds of any loaded sector.
 	 */
 	AChunk* GetChunk(const FIntVector& BlockPosition);
 
 	/**
-	 * Get a reference to a block at specified position. Specified position must be in the bounds of any loaded sector.
+	 * Get a pointer to a block at specified position. Specified position must be within the bounds of any loaded
+	 * sector.
 	 */
 	FBlockPtr GetBlock(const FIntVector& BlockPosition);
 
 	/**
-	 * Get a reference to a block at specified position. Specified position must be in the bounds of any loaded sector.
+	 * Get a pointer to a block at specified position. Specified position must be within the bounds of any loaded
+	 * sector.
 	 */
 	const FBlockPtr GetBlock(const FIntVector& BlockPosition) const;
 
 	/**
-	 * Determine if a block at a specified position is an air (empty block). Blocks which are not within bounds of any
-	 * loaded sector are consider as air (empty) blocks.
+	 * Determine if a block at a specified block position is an air (empty) block. Blocks which are not within bounds
+	 * of any loaded sector are also considered as air (empty) blocks.
 	 */
 	bool IsBlockAir(const FIntVector& BlockPosition);
 
 	/**
-	 * Determine if block is in the bounds of any loaded sector.
+	 * Determine if block is within the bounds of any loaded sector.
 	 */
 	bool IsBlockInBounds(const FIntVector& BlockPosition) const;
 
 	/**
-	 * Compute height for a block at a specified XY position.
+	 * Compute height for a block at a specified XY block position.
 	 */
 	int32 ComputeHeight(const FIntVector2& BlockPosition) const;
 
 	/**
-	 * Compute position of a block from a arbitary position in the world.
+	 * Compute block position of a block from a arbitary position in the world.
 	 */
 	FIntVector GetBlockPosition(const FVector& WorldPosition) const;
 
 	/**
-	 * Spawn a sector which contains a block at specified position.
+	 * Spawn a sector which contains a block at specified block position.
+	 * 
+	 * \param bShouldIgnoreFirstOverlap Determine if first overlap event with sector trigger should be ignored. Note
+	 * that this trigger fires when spawned with player in its area. Trigger of this event results of deletion of the
+	 * sector.
 	 */
 	void SpawnSector(const FIntVector& BlockPosition, const bool bShouldIgnoreFirstOverlap = true);
 
 	/**
-	 * Despawn a sector which contains a block at specified position.
+	 * Despawn a sector which contains a block at specified block position.
 	 */
 	void DespawnSector(const FIntVector& BlockPosition);
 
@@ -98,7 +104,7 @@ private:
 	TArray<TObjectPtr<ASector>> Sectors;
 
 	/**
-	 * Sectors which are in queue in order to cook up their mesh.
+	 * Sectors which are in queue in order to cook up their meshes.
 	 */
 	TQueue<ASector*> SectorsToProcess;
 
@@ -108,12 +114,14 @@ private:
 	TQueue<ASector*> SectorsToDespawn;
 
 	/**
-	 * Convert position of a block to a position of a sector.
+	 * Convert a block position of a block to a sector position. Sector position is a block position of its most
+	 * left-back-down block.
 	 */
 	FIntVector ConvertBlockPositionToSectorPosition(const FIntVector& BlockPosition) const;
 
 	/**
-	 * Determine if game world contains a sector with specified position.
+	 * Determine if game world contains a sector with a specified sector position. Sector position is a block position
+	 * of its most left-back-down block.
 	 */
 	bool DoContainsSector(const FIntVector& SectorPosition);
 };

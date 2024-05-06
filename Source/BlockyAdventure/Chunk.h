@@ -12,7 +12,7 @@ class AGameWorld;
 class ASector;
 
 /**
- * Represent a chunk of the game world sector. The game world is composed from sectors. Each sector is composed
+ * Represent a chunk of a game world sector. The game world is composed from sectors. Each sector is composed
  * from chunks. Each chunk has its own mesh.
  */
 UCLASS()
@@ -60,7 +60,7 @@ public:
 	 * Initialize this chunk.
 	 * 
 	 * \param InSector Sector to which this chunk belongs.
-	 * \param InPosition Block position of the lower left back block of this chunk.
+	 * \param InPosition Block position of the most left-back-down block of the chunk.
 	 */
 	void Initialize(ASector* const InSector, const FIntVector& InPosition)
 	{
@@ -80,21 +80,23 @@ public:
 
 	/**
 	 * Cook created mesh for the chunk.
+	 * 
+	 * \param bUseAsyncCooking Determine if the mesh should by cooked asynchrously.
 	 */
 	void CookMesh(const bool bUseAsyncCooking);
 
 	/**
-	 * Get a game world which owns sector which owns this chunk.
+	 * Get the game world to which this chunk belongs.
 	 */
 	AGameWorld* GetGameWorld();
 
 	/**
-	 * Get a sector which owns this chunk.
+	 * Get the sector to which this chunk belongs.
 	 */
 	ASector* GetSector() const { return Sector; }
 
 	/**
-	 * Get a reference to a block at specified position. Specified position must be in the bounds of this chunk.
+	 * Get a pointer to a block at specified position. Specified position must be within the bounds of this chunk.
 	 */
 	const FBlockPtr GetBlock(const FIntVector& BlockPosition) const;
 
@@ -114,7 +116,7 @@ public:
 	uint8* GetBlockData() { return Blocks.GetData(); }
 
 	/**
-	 * Get number of vertivec in this chunk mesh.
+	 * Get number of vertices in this chunk mesh.
 	 */
 	uint32 GetVertexCount() const { return MeshVertices.Num(); }
 
@@ -124,9 +126,21 @@ private:
 	 */
 	UPROPERTY()
 	TObjectPtr<UProceduralMeshComponent> MeshComponent;
+	/**
+	 * Mesh vertex data. Used for creating chunk mesh.
+	 */
 	TArray<FVector> MeshVertices;
+	/**
+	 * Mesh index data. Used for creating chunk mesh.
+	 */
 	TArray<int32> MeshIndices;
+	/**
+	 * Mesh normal data. Used for creating chunk mesh.
+	 */
 	TArray<FVector> MeshNormals;
+	/**
+	 * Mesh color data. Used for creating chunk mesh.
+	 */
 	TArray<FColor> MeshColors;
 	/**
 	 * Contains information about which blocks have been processed. Is used during chunk mesh generation.
@@ -134,17 +148,18 @@ private:
 	TBitArray<> ProcessedBlocks{ false, BLOCK_COUNT * DIRECTION_COUNT };
 
 	/**
-	 * Represent this chunk. Blocks are mapped into flat array, first by Z, then by Y, then by X. Each block is
-	 * represented by aits ID. Air (empty) blocks are represented by air block ID.
+	 * Contains all blocks within this chunk. Blocks are mapped into flat array, first by Z dimension, then by Y
+	 * dimension, then by X dimension. Each block is represented by its ID. Air (empty) blocks are represented by air
+	 * block ID.
 	 */
 	TArray<BlockTypeID> Blocks;
 	/**
-	 * Represent a sector to which this chunk belongs.
+	 * Sector to which this chunk belongs.
 	 */
 	UPROPERTY()
 	TObjectPtr<ASector> Sector;
 	/**
-	 * Position of the left-back-down corner of the chunk.
+	 * Block position of the most left-back-down block of the chunk.
 	 */
 	FIntVector Position;
 
@@ -175,8 +190,8 @@ private:
 	inline static constexpr int32 FACE_VERTICES_COUNT{ 4 };
 
 	/**
-	 * Start creating mesh run for block at a specified position, run will try to create as much quads as possible
-	 * using greedy meshing alghoritm. Currently using only quad strips.
+	 * Start creating mesh run for block at a specified position. Run will try to create largest possible quads using
+	 * greedy meshing alghoritm. Currently using only quad strips.
 	 */
 	void StartMeshRun(const FIntVector& BlockPosition, const int32 BlockIndex);
 

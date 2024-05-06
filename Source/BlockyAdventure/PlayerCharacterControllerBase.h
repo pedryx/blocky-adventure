@@ -122,7 +122,9 @@ private:
 		 * Determine if line trace hit some block.
 		 */
 		bool bIsSuccess;
-
+		/**
+		 * Block hit by the line trace if line trace hit some block otherwise invalid block pointer.
+		 */
 		FBlockPtr Block{};
 		/**
 		 * Normal of hitted face of block if any block was hitted otherwise zero vector.
@@ -130,7 +132,7 @@ private:
 		FVector Normal;
 
 		/**
-		 * Create instance of failed line trace.
+		 * Create instance of failed line trace. Failed line trace did not hit any block.
 		 */
 		static FLineTraceResults Fail()
 		{
@@ -139,7 +141,7 @@ private:
 	};
 
 	/**
-	 * Result of current trace. Result is updated every frame.
+	 * Result of current line trace. Result is updated every frame.
 	 */
 	FLineTraceResults CurrentTrace{ FLineTraceResults::Fail() };
 
@@ -157,12 +159,12 @@ private:
 
 	/**
 	 * Update CurrentTrace.
-	 * 
 	 */
 	void UpdateCurrentTrace();
 
 	/**
-	 * If there is a block currently being line traced, set it to a block of a type of a specified ID.
+	 * If there is a block currently being line traced, set it to a block of a type of a specified ID, otherwise do
+	 * nothing.
 	 */
 	void TrySetLineTracedBlock(const BlockTypeID ID) const;
 
@@ -192,7 +194,9 @@ private:
 	void CompleteBlockDestruction();
 	
 	/**
-	 * Update destruction porgress of a block which is currently being destroyed including destruction animation.
+	 * Update destruction progress of a block which is currently being destroyed including destruction animation.
+	 * 
+	 * \param DeltaSeconds Frame delta time in seconds.
 	 */
 	void ProgressBlockDestruction(const float DeltaSeconds);
 };
