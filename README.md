@@ -21,7 +21,7 @@ Every sector is composed of chunks. Each chunk is saved to a file upon destructi
 Each chunk is composed of blocks. Blocks can be destroyed and placed. Different blocks have different destruction times.
 
 ## Optimalizations
-The game uses greedy meshing for mesh creation of chunks. For each face of every block, it tries to create as large a stripe as possible. This optimization leads to a decrease in number of triangles in the meshes.
+The game uses greedy meshing for mesh creation of chunks. For each face of every block, it tries to create as large stripe as possible. This optimization leads to a decrease in number of triangles in the meshes.
 
 ## Branches
 This repository consists of two branches:
