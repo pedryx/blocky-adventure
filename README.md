@@ -1,5 +1,5 @@
 # Blocky Adventure
-Minecraft-like game solo-made in unreal engine made in one week.
+Minecraft-like game solo-made with Unreal Engine in one week.
 
 ## Control
 - Movement: W,A,S,D
@@ -21,19 +21,19 @@ Every sector is composed of chunks. Each chunk is saved to a file upon destructi
 Each chunk is composed of blocks. Blocks can be destroyed and placed. Different blocks have different destruction times.
 
 ## Optimalizations
-The game uses greedy meshing for mesh creation of chunks. For each face of every block it tries to create as large stripe as possible. This optimalization leads to a decrease in number of triangles in the meshes.
+The game uses greedy meshing for mesh creation of chunks. For each face of every block, it tries to create as large a stripe as possible. This optimization leads to a decrease in number of triangles in the meshes.
 
 ## Branches
-This reprository consist of two branches:
-- Main branch: It contains greedy meshing optimalization, but this optimalization is not completly finished, meaning there are two bugs which can occur when using this branch:
-  - Upon placing block some faces of this block can became invisible and game can crash upon looking at them.
-  - Sometimes there is big triangle generated under the game world.
-- Stable branch: This branch dont have greedy meshing optimalization and it is generating meshes in a very simple way which just check if the face is exposed to air and if yes it generates quad for that face. This branch dont contains bugs mention in the main branch description.
+This repository consists of two branches:
+- Main branch: It contains greedy meshing optimization, but this optimization is not finished, meaning two bugs can occur when using this branch:
+  - Upon placing the block some faces of this block can become invisible and the game can crash upon looking at them.
+  - Sometimes there is a big triangle generated under the game world.
+- Stable branch: This branch doesn't have greedy meshing optimization and it generates meshes in a very simple way which just checks if the face is exposed to air and if yes it generates quad for that face. This branch doesn't contain bugs mentioned in the main branch description.
 
 ## Known bugs
 The following bugs can occur (at both branches):
-- There is not respawn when player fall out of the map.
-- The game crashes when player try to place block above maximum height or bellow zero height.
+- There is no respawn when the player falls out of the map.
+- The game crashes when the player tries to place a block above maximum height or below zero height.
 
 ## Links
 - [Trello](https://trello.com/b/xAdQrWXY/blocky-adventure)
