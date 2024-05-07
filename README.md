@@ -1,5 +1,5 @@
 # Blocky Adventure
-Minecraft-like game solo-made in unreal engine.
+Minecraft-like game solo-made in unreal engine made in one week.
 
 ## Control
 - Movement: W,A,S,D
