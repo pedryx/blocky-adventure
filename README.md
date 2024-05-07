@@ -34,3 +34,6 @@ This reprository consist of two branches:
 The following bugs can occur (at both branches):
 - There is not respawn when player fall out of the map.
 - The game crashes when player try to place block above maximum height or bellow zero height.
+
+## Links
+- [Trello](https://trello.com/b/xAdQrWXY/blocky-adventure)
